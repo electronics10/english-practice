@@ -1,0 +1,29 @@
+# Standard Ebooks repo names (github.com/standardebooks/<name>), one per line.
+# Add a line and run: python3 tools/build_shelf.py && python3 tools/build.py
+g-k-chesterton_orthodoxy
+g-k-chesterton_heretics
+g-k-chesterton_whats-wrong-with-the-world
+john-stuart-mill_on-liberty
+john-stuart-mill_the-subjection-of-women
+bertrand-russell_the-problems-of-philosophy
+david-hume_an-enquiry-concerning-human-understanding
+william-james_pragmatism
+william-james_the-varieties-of-religious-experience
+ralph-waldo-emerson_essays
+henry-david-thoreau_walden
+henry-david-thoreau_essays
+marcus-aurelius_meditations_george-long
+epictetus_short-works_george-long
+seneca_dialogues_aubrey-stewart
+friedrich-nietzsche_beyond-good-and-evil_helen-zimmern
+william-hazlitt_table-talk
+alexander-hamilton_john-jay_james-madison_the-federalist-papers
+mary-wollstonecraft_a-vindication-of-the-rights-of-woman
+thorstein-veblen_the-theory-of-the-leisure-class
+w-e-b-du-bois_the-souls-of-black-folk
+john-dewey_democracy-and-education
+plato_dialogues_benjamin-jowett
+thomas-paine_the-rights-of-man
+john-locke_two-treatises-of-government
+matthew-arnold_culture-and-anarchy
+edmund-burke_reflections-on-the-revolution-in-france

@@ -1,0 +1,743 @@
+<title>Commonplace Book</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,600;1,7..72,400;1,7..72,500&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: left leaf = the author's text, right leaf = your margin; the review is the editor's sheet laid underneath. Phones get one leaf at a time. */
+:root{
+  --paper:#E9E6DC; --sheet:#F4F1E8; --ink:#1F1E1C; --ink-2:#4F4C45; --ink-3:#7A766C; --rule:#D3CEC0;
+  --accent:#B0532F; --accent-ink:#FFF8F2; --accent-soft:#F1DDD2;
+  --ins:#2E6B3A; --ins-bg:#DCE9D6; --del:#9E2F2A; --del-bg:#F2DCD5;
+  --k-meaning:#9E2F2A; --k-wording:#B0532F; --k-grammar:#3D5F86; --k-structure:#6A4F7E;
+  --serif:"Literata", Georgia, "Times New Roman", serif;
+  --sans:"Instrument Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono:"JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --paper:#262624; --sheet:#30302D; --ink:#ECE9E1; --ink-2:#BDB8AC; --ink-3:#8F8A7F; --rule:#45433E;
+  --accent:#DA7B58; --accent-ink:#22150F; --accent-soft:#4A3229;
+  --ins:#9FD2A3; --ins-bg:#2C3A2A; --del:#F0A39B; --del-bg:#4A2D29;
+  --k-meaning:#F0A39B; --k-wording:#DA7B58; --k-grammar:#9DB8D8; --k-structure:#C2AEDB; color-scheme:dark } }
+:root[data-theme="dark"]{
+  --paper:#262624; --sheet:#30302D; --ink:#ECE9E1; --ink-2:#BDB8AC; --ink-3:#8F8A7F; --rule:#45433E;
+  --accent:#DA7B58; --accent-ink:#22150F; --accent-soft:#4A3229;
+  --ins:#9FD2A3; --ins-bg:#2C3A2A; --del:#F0A39B; --del-bg:#4A2D29;
+  --k-meaning:#F0A39B; --k-wording:#DA7B58; --k-grammar:#9DB8D8; --k-structure:#C2AEDB; color-scheme:dark }
+
+*{box-sizing:border-box}
+body{background:var(--paper);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1180px;margin:0 auto;padding-inline:20px;padding-block:0 64px}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,textarea:focus-visible,input:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.label{font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3)}
+
+/* header */
+header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--paper);border-bottom:1px solid var(--rule)}
+.top-in{max-width:1180px;margin:0 auto;padding:12px 20px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.mark{font-family:var(--serif);font-style:italic;font-size:21px;font-weight:500;letter-spacing:-.01em;margin-right:auto;white-space:nowrap}
+.mark small{font-family:var(--mono);font-style:normal;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3);margin-left:8px;vertical-align:3px}
+nav.views{display:flex;gap:2px;background:var(--sheet);border:1px solid var(--rule);border-radius:999px;padding:3px}
+nav.views button{border:0;background:none;padding:6px 14px;border-radius:999px;font-size:13px;font-weight:500;color:var(--ink-2)}
+nav.views button[aria-current="true"]{background:var(--ink);color:var(--paper)}
+.theme{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--rule);background:var(--sheet);border-radius:999px;padding:6px 12px;font-size:13px;font-weight:500;color:var(--ink-2)}
+.theme svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round}
+
+/* today */
+.status{margin:18px 0 0;font-size:13px;color:var(--ink-3);min-height:20px}
+.tabs{display:none}
+.leaves{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,.95fr);gap:28px;margin-top:14px;align-items:start}
+.leaf{min-width:0}
+.passage{background:var(--sheet);border:1px solid var(--rule);border-radius:4px;padding:30px 34px 34px}
+.pmeta{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:baseline}
+.pmeta .no{font-family:var(--mono);font-size:12px;color:var(--accent)}
+.ptitle{font-family:var(--serif);font-weight:600;font-size:clamp(22px,2.6vw,28px);line-height:1.2;margin:10px 0 4px;text-wrap:balance;letter-spacing:-.01em}
+.pby{font-family:var(--serif);font-style:italic;color:var(--ink-2);margin:0 0 22px}
+.ptext{font-family:var(--serif);font-size:18px;line-height:1.72;max-width:64ch}
+.ptext p{margin:0 0 1em;hyphens:auto}
+.ptext p:last-child{margin-bottom:0}
+.ptext ::selection{background:var(--accent-soft)}
+.pfoot{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;margin-top:24px;padding-top:16px;border-top:1px solid var(--rule)}
+.hint{font-size:13px;color:var(--ink-3)}
+.free{font-family:var(--serif);font-size:18px;line-height:1.7;color:var(--ink-2)}
+
+.margin{position:sticky;top:calc(env(safe-area-inset-top,0px) + 76px)}
+.margin h2{font-family:var(--serif);font-weight:500;font-style:italic;font-size:20px;margin:4px 0 10px}
+textarea{width:100%;min-height:340px;resize:vertical;background:var(--sheet);color:var(--ink);border:1px solid var(--rule);border-radius:4px;padding:18px 18px;font-family:var(--sans);font-size:16px;line-height:1.65}
+textarea::placeholder{color:var(--ink-3)}
+.wbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:10px}
+.count{font-family:var(--mono);font-size:12px;color:var(--ink-3);margin-right:auto;font-variant-numeric:tabular-nums}
+.btn{border:1px solid var(--rule);background:var(--sheet);border-radius:999px;padding:8px 16px;font-size:14px;font-weight:500}
+.btn:hover{border-color:var(--ink-3)}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.btn.primary:hover{filter:brightness(1.07)}
+.btn.quiet{border-color:transparent;background:none;color:var(--ink-2);padding-inline:10px}
+.btn:disabled{opacity:.5;cursor:default}
+.busy{display:flex;gap:10px;align-items:center;margin-top:12px;font-size:14px;color:var(--ink-2)}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--accent);animation:pulse 1.2s ease-in-out infinite}
+@keyframes pulse{50%{opacity:.25}}
+@media (prefers-reduced-motion: reduce){.dot{animation:none}}
+.err{margin-top:12px;font-size:14px;color:var(--del)}
+
+/* review */
+.review{margin-top:40px}
+.rhead{display:flex;flex-wrap:wrap;align-items:baseline;gap:8px 16px;border-bottom:2px solid var(--ink);padding-bottom:10px}
+.rhead h2{font-family:var(--serif);font-weight:600;font-size:24px;margin:0;margin-right:auto}
+.rgrid{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,.95fr);gap:28px;margin-top:22px}
+.rsec{min-width:0}
+.rsec + .rsec{margin-top:28px}
+.rsec h3{margin:0 0 10px}
+.corrected{background:var(--sheet);border:1px solid var(--rule);border-radius:4px;padding:18px 20px;font-size:16px;line-height:1.75;white-space:pre-wrap;overflow-wrap:anywhere}
+.corrected del{color:var(--del);background:var(--del-bg);text-decoration:line-through;text-decoration-thickness:1px;border-radius:2px}
+.corrected ins{color:var(--ins);background:var(--ins-bg);text-decoration:none;border-radius:2px}
+.corrected.clean del{display:none}
+.corrected.clean ins{background:none;color:inherit}
+.toggle{border:0;background:none;color:var(--accent);font-size:13px;font-weight:500;padding:0}
+.notes{list-style:none;margin:0;padding:0;display:grid;gap:12px}
+.note{border-left:3px solid var(--kc,var(--ink-3));padding:2px 0 2px 14px}
+.note .kind{font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--kc)}
+.note .pair{margin:4px 0;display:grid;gap:2px;font-size:15px}
+.note .was{color:var(--ink-2);text-decoration:line-through;text-decoration-color:var(--del)}
+.note .now{font-weight:500}
+.note .why{color:var(--ink-2);font-size:14px;margin:4px 0 0}
+.k-meaning{--kc:var(--k-meaning)} .k-wording{--kc:var(--k-wording)} .k-grammar{--kc:var(--k-grammar)} .k-structure{--kc:var(--k-structure)}
+.phrases{display:grid;gap:10px;margin:0;padding:0;list-style:none}
+.phrase{background:var(--sheet);border:1px solid var(--rule);border-radius:4px;padding:12px 14px}
+.phrase b{font-family:var(--serif);font-weight:600;font-size:16px}
+.chip{font-family:var(--mono);font-size:10px;letter-spacing:.06em;text-transform:uppercase;border:1px solid var(--rule);border-radius:999px;padding:1px 7px;margin-left:6px;color:var(--ink-3);vertical-align:2px}
+.chip.modern{color:var(--ins);border-color:var(--ins)}
+.chip.dated{color:var(--k-wording);border-color:var(--k-wording)}
+.phrase p{margin:4px 0 0;font-size:14px;color:var(--ink-2)}
+.phrase .use{font-style:italic;color:var(--ink)}
+.aside{font-family:var(--serif);font-size:17px;line-height:1.65;border-top:1px solid var(--rule);padding-top:14px}
+.reply-orig{white-space:pre-wrap;font-size:15px;line-height:1.65;color:var(--ink-2);background:var(--sheet);border:1px solid var(--rule);border-radius:4px;padding:14px 16px;overflow-wrap:anywhere}
+
+/* lookup dock */
+.lookbtn{position:fixed;z-index:40;transform:translate(-50%,-110%);background:var(--ink);color:var(--paper);border:0;border-radius:999px;padding:6px 12px;font-size:13px;font-weight:500;box-shadow:0 4px 14px rgba(0,0,0,.18)}
+.dock{position:fixed;z-index:45;right:20px;bottom:calc(20px + env(safe-area-inset-bottom,0px));width:min(380px,calc(100vw - 32px));background:var(--sheet);border:1px solid var(--rule);border-radius:6px;box-shadow:0 12px 40px rgba(0,0,0,.18);padding:16px 18px}
+.dock .q{font-family:var(--serif);font-weight:600;font-size:17px;margin:4px 28px 8px 0}
+.dock .a{white-space:pre-wrap;font-size:14px;line-height:1.6;color:var(--ink-2);max-height:40vh;overflow:auto}
+.dock .x{position:absolute;top:10px;right:10px;border:0;background:none;font-size:20px;line-height:1;color:var(--ink-3);padding:4px 8px}
+
+/* library & history */
+.listhead{display:flex;flex-wrap:wrap;gap:12px;align-items:end;justify-content:space-between;margin:28px 0 16px}
+.listhead h1{font-family:var(--serif);font-weight:600;font-size:30px;margin:0;letter-spacing:-.01em}
+.filters{display:flex;flex-wrap:wrap;gap:6px}
+.filters button{border:1px solid var(--rule);background:var(--sheet);border-radius:999px;padding:4px 12px;font-size:13px;color:var(--ink-2)}
+.filters button[aria-pressed="true"]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.rows{list-style:none;margin:0;padding:0;border-top:1px solid var(--rule)}
+.row{display:grid;grid-template-columns:52px minmax(0,1fr) auto;gap:4px 16px;align-items:baseline;padding:14px 4px;border-bottom:1px solid var(--rule);width:100%;text-align:left;background:none;border-left:0;border-right:0;border-top:0}
+.row:hover{background:var(--sheet)}
+.row .n{font-family:var(--mono);font-size:12px;color:var(--ink-3);font-variant-numeric:tabular-nums}
+.row .t{font-family:var(--serif);font-size:17px;font-weight:500;min-width:0}
+.row .s{grid-column:2;font-size:13px;color:var(--ink-2)}
+.row .st{font-family:var(--mono);font-size:11px;color:var(--ink-3);text-align:right;white-space:nowrap}
+.row .st.done{color:var(--ins)}
+.empty{padding:28px 4px;color:var(--ink-3);font-size:14px}
+.addtext{margin-top:36px;background:var(--sheet);border:1px solid var(--rule);border-radius:4px;padding:20px}
+.addtext h2{font-family:var(--serif);font-weight:500;font-style:italic;font-size:20px;margin:0 0 4px}
+.addtext p{margin:0 0 12px;font-size:14px;color:var(--ink-2)}
+.fields{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+input[type=text]{width:100%;background:var(--paper);color:var(--ink);border:1px solid var(--rule);border-radius:4px;padding:9px 12px;font:inherit}
+.addtext textarea{min-height:160px;background:var(--paper)}
+.back{margin:22px 0 0}
+.shelfbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;margin:0 0 14px}
+.shelfbar p{margin:0}
+.backup{margin-top:36px;padding-top:20px;border-top:1px solid var(--rule);display:grid;gap:8px}
+.backup h2{font-family:var(--serif);font-weight:500;font-style:italic;font-size:20px;margin:0 0 4px}
+.backup p{margin:0;font-size:14px;color:var(--ink-2);max-width:62ch}
+label.btn{cursor:pointer}
+.histhead{margin:18px 0 0}
+.histhead h1{font-family:var(--serif);font-weight:600;font-size:26px;margin:6px 0 2px}
+
+@media (max-width:860px){
+  .wrap{padding-inline:16px}
+  .top-in{padding:10px 16px;gap:10px}
+  .tabs{display:flex;gap:2px;margin-top:14px;border-bottom:1px solid var(--rule)}
+  .tabs button{flex:1;border:0;background:none;padding:10px 4px;font-size:14px;font-weight:500;color:var(--ink-3);border-bottom:2px solid transparent;margin-bottom:-1px}
+  .tabs button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--ink)}
+  .tabs button:disabled{opacity:.4}
+  .leaves,.rgrid{grid-template-columns:minmax(0,1fr)}
+  .today[data-tab="read"] .leaf.write,.today[data-tab="read"] .review{display:none}
+  .today[data-tab="write"] .leaf.read,.today[data-tab="write"] .review{display:none}
+  .today[data-tab="review"] .leaves{display:none}
+  .today[data-tab="review"] .review{margin-top:16px}
+  .passage{padding:22px 18px 24px;border-left:0;border-right:0;border-radius:0;margin-inline:-16px}
+  .ptext{font-size:17px}
+  .margin{position:static}
+  textarea{min-height:46vh}
+  .fields{grid-template-columns:1fr}
+  .row{grid-template-columns:40px minmax(0,1fr)}
+  .row .st{grid-column:2;text-align:left}
+  .dock{right:16px}
+}
+</style>
+
+<header class="top"><div class="top-in">
+  <div class="mark">Commonplace Book<small>English, slowly</small></div>
+  <nav class="views" aria-label="Views">
+    <button data-view="today" aria-current="true">Today</button>
+    <button data-view="library">Library</button>
+    <button data-view="history">History</button>
+  </nav>
+  <button class="theme" id="theme" type="button" aria-label="Color theme"></button>
+</div></header>
+
+<main class="wrap">
+  <section id="v-today" class="today" data-tab="read">
+    <p class="status" id="status"></p>
+    <div class="tabs" role="tablist">
+      <button role="tab" data-tab="read" aria-selected="true">Read</button>
+      <button role="tab" data-tab="write" aria-selected="false">Write</button>
+      <button role="tab" data-tab="review" aria-selected="false" disabled>Review</button>
+    </div>
+    <div class="leaves">
+      <article class="leaf read"><div class="passage" id="passage"></div></article>
+      <aside class="leaf write"><div class="margin">
+        <div class="label">Your margin</div>
+        <h2 id="w-title">Say whatever you want to say.</h2>
+        <textarea id="reply" placeholder="React, argue, disagree, summarize, wander. Mistakes are the material."></textarea>
+        <div class="wbar">
+          <span class="count" id="count">0 words</span>
+          <button class="btn quiet" id="b-skip">Skip passage</button>
+          <button class="btn primary" id="b-review">Review my writing</button>
+        </div>
+        <div class="busy" id="busy" hidden><span class="dot"></span><span id="busy-t">Reviewing…</span><button class="btn quiet" id="b-stop">Stop</button></div>
+        <p class="err" id="err" hidden></p>
+      </div></aside>
+    </div>
+    <section class="review" id="review" hidden></section>
+  </section>
+
+  <section id="v-library" hidden>
+    <div class="listhead"><h1>Library</h1><div class="filters" id="filters"></div></div>
+    <div class="shelfbar"><p class="hint" id="shelfnote"></p><button class="btn" id="b-shelf" type="button">Draw from the shelf</button></div>
+    <ul class="rows" id="lib"></ul>
+    <form class="addtext" id="addform">
+      <h2>Bring your own text</h2>
+      <p>Paste a modern essay, a transcript, or anything you read elsewhere. It becomes today's passage.</p>
+      <div class="fields"><input type="text" id="a-title" placeholder="Title"><input type="text" id="a-author" placeholder="Author (optional)"></div>
+      <textarea id="a-body" placeholder="Paste the text here"></textarea>
+      <div class="wbar"><span class="count" id="a-msg"></span><button type="submit" class="btn primary">Read this today</button></div>
+    </form>
+  </section>
+
+  <section id="v-history" hidden>
+    <div id="hist-list">
+      <div class="listhead"><h1>History</h1><span class="hint" id="hist-sum"></span></div>
+      <ul class="rows" id="hist"></ul>
+      <div class="backup">
+        <div><h2>Keep a copy</h2><p>Your history lives inside this page on claude.ai. Save a copy to keep it safe, or load one into a fresh copy of the page.</p></div>
+        <div class="wbar">
+          <button class="btn" id="x-md" type="button">Save as Markdown</button>
+          <button class="btn" id="x-json" type="button">Save backup (JSON)</button>
+          <label class="btn" for="x-file">Load backup</label><input type="file" id="x-file" accept=".json,application/json" hidden>
+        </div>
+        <p class="hint" id="x-msg"></p>
+      </div>
+    </div>
+    <div id="hist-detail" hidden></div>
+  </section>
+</main>
+
+<button class="lookbtn" id="lookbtn" hidden>Explain</button>
+<div class="dock" id="dock" hidden role="dialog" aria-label="Explanation">
+  <button class="x" id="dock-x" aria-label="Close">×</button>
+  <div class="label">Explain</div>
+  <div class="q" id="dock-q"></div>
+  <div class="a" id="dock-a"></div>
+</div>
+
+<script type="application/json" id="passages-data">__LIBRARY__</script>
+<script>
+(function(){
+"use strict";
+const PASSAGES = JSON.parse(document.getElementById("passages-data").textContent);
+PASSAGES.forEach((p,i)=>{ p.no = i+1; p.builtin = true; });
+const FREE = {id:"free", title:"Free page", author:"", work:"", section:"", text:"", free:true};
+
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const words = s => (String(s||"").trim().match(/\S+/g) || []).length;
+const ls = {
+  get(k){ try { return localStorage.getItem(k); } catch(e){ return null; } },
+  set(k,v){ try { localStorage.setItem(k,v); } catch(e){} },
+  del(k){ try { localStorage.removeItem(k); } catch(e){} }
+};
+
+/* ---------- store: claude db per viewer, local fallback ---------- */
+let records = [];
+let col = null;
+function loadLocal(){ try { records = JSON.parse(ls.get("cp.records") || "[]"); } catch(e){ records = []; } }
+function saveLocal(){ ls.set("cp.records", JSON.stringify(records)); }
+async function putRecord(rec){
+  const i = records.findIndex(r => r.id === rec.id);
+  if (i >= 0) records[i] = rec; else records.push(rec);
+  if (col){
+    const { id, ...body } = rec;
+    try { await col.doc(id).set(body); } catch(e){ saveLocal(); }
+  } else saveLocal();
+  renderLists();
+}
+async function initStore(){
+  loadLocal();
+  if (!window.claude || !window.claude.use) return;
+  try {
+    const [db, user] = await Promise.all([claude.use("db"), claude.use("user")]);
+    const uid = user ? await user.id() : null;
+    if (!db || !uid) return;
+    col = db.collection("data/users/" + uid);
+    col.onSnapshot(snap => {
+      const remote = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      // carry over anything saved locally before the store answered
+      const ids = new Set(remote.map(r => r.id));
+      const pending = records.filter(r => !ids.has(r.id));
+      records = remote.concat(pending);
+      pending.forEach(r => { const { id, ...b } = r; col.doc(id).set(b).catch(()=>{}); });
+      if (pending.length) ls.del("cp.records");
+      renderLists();
+      if (!state.started) startToday();
+    }, () => {});
+  } catch(e){}
+}
+const sessions = () => records.filter(r => r.type === "session").sort((a,b) => b.createdAt - a.createdAt);
+const customTexts = () => records.filter(r => r.type === "text").sort((a,b) => a.createdAt - b.createdAt);
+const shelfDrawn = () => records.filter(r => r.type === "shelf").sort((a,b) => a.createdAt - b.createdAt);
+const stateRec = () => records.find(r => r.id === "state") || { id:"state", type:"state", skipped:[] };
+const allPassages = () => PASSAGES
+  .concat(customTexts().map(t => ({ id:t.id, title:t.title, author:t.author||"", work:"", section:"", year:"", text:t.body, custom:true })))
+  .concat(shelfDrawn().map(t => ({ id:t.id, title:t.title, author:t.author||"", work:t.work||"", section:t.section||"", year:"", text:t.body, shelf:true, shelfId:t.shelfId })));
+const findPassage = id => id === "free" ? FREE : allPassages().find(p => p.id === id);
+const doneSet = () => new Set(sessions().map(s => s.passageId));
+
+/* ---------- sample ---------- */
+let sample = null;
+if (window.claude && window.claude.use) claude.use("sample").then(s => { sample = s; syncButtons(); }).catch(()=>{});
+const ERR = {
+  not_granted: "Claude isn't allowed on this page. Allow it from the page's Permissions menu, then try again.",
+  rate_limited: "You've hit a usage limit for now. Your text is kept; try again later.",
+  sampling_disabled: "Claude isn't available on your account right now.",
+  prompt_too_large: "The text is too long for one review. Try a shorter piece.",
+  invalid_json: "The review came back garbled. Press Review again.",
+  refused: "Claude declined to review this text.",
+  session_expired: "Your session expired. Reload the page and try again."
+};
+const errText = e => ERR[e && e.code] || "Something went wrong reaching Claude. Your text is kept; press Review again.";
+
+/* ---------- state ---------- */
+const state = { view:"today", current:null, tab:"read", review:null, reply:"", started:false, ctl:null };
+
+/* Unread hand-picked or own texts first; when those run out, draw from the shelf. */
+function unreadPool(excludeId){
+  const done = doneSet(), skipped = new Set(stateRec().skipped || []);
+  return PASSAGES.concat(allPassages().filter(p => p.custom))
+    .filter(p => !done.has(p.id) && !skipped.has(p.id) && p.id !== excludeId);
+}
+async function goNext(opts = {}){
+  const pool = unreadPool(state.current);
+  if (pool.length && !opts.shelf) return openPassage(pool[Math.floor(Math.random() * pool.length)].id, opts.goToday !== false);
+  return drawFromShelf(opts);
+}
+async function markSkipped(id){
+  if (!id || id === "free") return;
+  const s = stateRec(); const sk = new Set(s.skipped || []); sk.add(id);
+  await putRecord({ ...s, skipped:[...sk].slice(-500) });
+}
+function startToday(){
+  state.started = true;
+  const saved = ls.get("cp.current");
+  const p = saved && findPassage(saved);
+  if (p) openPassage(p.id, false); else goNext({ ask:false, goToday:false });
+}
+
+/* ---------- the shelf: thousands of public-domain passages, fetched on demand ---------- */
+let shelfIndex = null; const shelfBooks = {};
+async function getJSON(path){ const r = await fetch(path); if (!r.ok) throw new Error(path); return r.json(); }
+async function loadShelfIndex(){ if (!shelfIndex) shelfIndex = await getJSON("shelf/index.json"); return shelfIndex; }
+async function loadBook(i){ if (!shelfBooks[i]) shelfBooks[i] = await getJSON(`shelf/${i}.json`); return shelfBooks[i]; }
+async function drawFromShelf({ ask = true, goToday = true } = {}){
+  if (state.drawing) return; state.drawing = true;
+  setView(goToday ? "today" : state.view);
+  $("#status").textContent = "Choosing a passage from the shelf…";
+  try {
+    const idx = await loadShelfIndex();
+    const used = new Set(shelfDrawn().map(r => r.shelfId));
+    const order = idx.books.map((b,i) => i).sort(() => Math.random() - .5).slice(0, 4);
+    const cands = [];
+    for (const bi of order){
+      const items = (await loadBook(bi)).filter(x => !used.has(x.id));
+      if (items.length) cands.push({ book: idx.books[bi], item: items[Math.floor(Math.random() * items.length)] });
+    }
+    if (!cands.length) throw new Error("empty");
+    let pick = 0, title = "";
+    if (ask && sample && cands.length > 1){
+      try {
+        const r = await sample.json(`Below are ${cands.length} passages from classic books. A thoughtful adult learner will read one and then write freely in response. Choose the passage that is most self-contained and most thought-provoking: it should make an argument or a striking claim, not depend on earlier pages, and not be a list, a summary of a plot, or mostly dialogue tags.
+
+${cands.map((c,i) => `PASSAGE ${i} (${c.book.author}, ${c.book.title})\n${c.item.t.slice(0, 1800)}`).join("\n\n")}
+
+Reply with only JSON: {"pick": <number>, "title": "<a plain title of at most 7 words that names the passage's idea>"}`, { modelTier:"quick" });
+        if (Number.isInteger(r.pick) && r.pick >= 0 && r.pick < cands.length) pick = r.pick;
+        if (typeof r.title === "string") title = r.title.trim().slice(0, 80);
+      } catch(e){}
+    } else pick = Math.floor(Math.random() * cands.length);
+    const c = cands[pick];
+    const rec = { id:"x" + Date.now().toString(36), type:"shelf", shelfId:c.item.id, title: title || c.item.s || c.book.title,
+      author:c.book.author, work:c.book.title, section:c.item.s || "", body:c.item.t, createdAt:Date.now() };
+    await putRecord(rec);
+    openPassage(rec.id, goToday);
+  } catch(e){
+    $("#status").textContent = "The shelf couldn't be opened. Pick a passage from the Library instead.";
+  } finally { state.drawing = false; }
+}
+function openPassage(id, goToday = true){
+  const p = findPassage(id) || PASSAGES[0];
+  state.current = p.id; ls.set("cp.current", p.id);
+  state.review = null; state.reply = "";
+  $("#reply").value = ls.get("cp.draft." + p.id) || "";
+  $("#review").hidden = true; $("#err").hidden = true;
+  renderPassage(p); updateCount(); setTab("read");
+  if (goToday) setView("today");
+  window.scrollTo({ top:0 });
+}
+
+/* ---------- rendering ---------- */
+const inline = s => esc(s).replace(/_([^_]+)_/g, "<em>$1</em>");
+const paras = t => String(t||"").split(/\n\s*\n/).map(x => x.trim()).filter(Boolean);
+function renderPassage(p){
+  const el = $("#passage");
+  if (p.free){
+    el.innerHTML = `<div class="pmeta"><span class="label">Free page</span></div>
+      <h1 class="ptitle">No passage today.</h1>
+      <p class="free">Write about anything: an idea from your research, an argument you had, something you read. The review works the same way.</p>
+      <div class="pfoot"><span class="hint">Want a passage instead?</span><button class="btn" id="b-another">Give me a passage</button></div>`;
+    $("#w-title").textContent = "Say whatever you want to say.";
+  } else {
+    const wc = words(p.text), mins = `${wc} words · about ${Math.max(1,Math.round(wc/200))} min`;
+    const meta = p.custom ? `<span class="label">Your text · ${mins}</span>` :
+      p.shelf ? `<span class="no">Shelf</span><span class="label">${mins}</span>` :
+      `<span class="no">No. ${String(p.no).padStart(2,"0")}</span><span class="label">${esc(p.year)} · ${mins}</span>`;
+    el.innerHTML = `<div class="pmeta">${meta}</div>
+      <h1 class="ptitle">${esc(p.custom || p.shelf ? p.title : p.section)}</h1>
+      <p class="pby">${esc(p.author)}${p.work ? ", " + esc(p.work) : ""}${p.shelf && p.section && p.section !== p.title ? " · " + esc(p.section) : ""}</p>
+      <div class="ptext" id="ptext">${paras(p.text).map(x => `<p>${inline(x)}</p>`).join("")}</div>
+      <div class="pfoot"><span class="hint">Select any word or phrase to have it explained.</span><button class="btn" id="b-another">Another passage</button></div>`;
+    $("#w-title").textContent = "Say whatever you want to say.";
+  }
+  $("#b-another").onclick = () => goNext();
+  const done = sessions().find(s => s.passageId === p.id && s.review);
+  $("#status").textContent = done ? `You wrote on this passage on ${fmtDate(done.createdAt)}. It's in History.` : "";
+}
+function fmtDate(ms){ return new Date(ms).toLocaleDateString(undefined, { month:"short", day:"numeric", year:"numeric" }); }
+function updateCount(){
+  const n = words($("#reply").value);
+  $("#count").textContent = n + (n === 1 ? " word" : " words");
+  syncButtons();
+}
+function syncButtons(){
+  const n = words($("#reply").value);
+  const p = findPassage(state.current);
+  const b = $("#b-review");
+  b.textContent = n ? "Review my writing" : (p && !p.free ? "Study the passage's language" : "Review my writing");
+  b.disabled = !sample || state.ctl !== null || (!n && (!p || p.free));
+  b.title = sample ? "" : "Reviews need Claude, which runs when this page is open in Claude.";
+}
+
+/* ---------- diff ---------- */
+function tokens(s){ return String(s||"").match(/\s+|[A-Za-z0-9’'\-]+|[^\sA-Za-z0-9]/g) || []; }
+function diffHTML(a, b){
+  const A = tokens(a), B = tokens(b);
+  if (A.length * B.length > 4e6) return esc(b);
+  const n = A.length, m = B.length;
+  const L = Array.from({ length:n+1 }, () => new Uint16Array(m+1));
+  for (let i = n-1; i >= 0; i--) for (let j = m-1; j >= 0; j--)
+    L[i][j] = A[i] === B[j] ? L[i+1][j+1] + 1 : Math.max(L[i+1][j], L[i][j+1]);
+  const out = []; let i = 0, j = 0;
+  const push = (t, s) => { const last = out[out.length-1]; if (last && last.t === t) last.s += s; else out.push({ t, s }); };
+  while (i < n && j < m){
+    if (A[i] === B[j]){ push("=", A[i]); i++; j++; }
+    else if (L[i+1][j] >= L[i][j+1]){ push("-", A[i]); i++; }
+    else { push("+", B[j]); j++; }
+  }
+  while (i < n) push("-", A[i++]);
+  while (j < m) push("+", B[j++]);
+  // fold whitespace-only equal runs between changes into the change, for readable blocks
+  return out.map(o => o.t === "=" ? esc(o.s) : o.t === "-" ? (o.s.trim() ? `<del>${esc(o.s)}</del>` : esc(o.s)) : `<ins>${esc(o.s)}</ins>`).join("");
+}
+
+/* ---------- review rendering ---------- */
+const KIND = { meaning:"Meaning", wording:"Wording", grammar:"Grammar", structure:"Structure" };
+const ORDER = ["meaning","wording","grammar","structure"];
+function renderReview(container, rev, reply, opts = {}){
+  const hasReply = !!String(reply||"").trim();
+  const notes = (Array.isArray(rev.notes) ? rev.notes : []).filter(x => x && (x.better || x.why))
+    .sort((a,b) => ORDER.indexOf(a.kind) - ORDER.indexOf(b.kind)).slice(0, 6);
+  const phr = Array.isArray(rev.passage_language) ? rev.passage_language.filter(x => x && x.phrase) : [];
+  const aside = String(rev.worth_pointing_out || "").trim();
+  const left = hasReply ? `
+    <div class="rsec">
+      <div class="listhead" style="margin:0 0 10px"><h3 class="label">Your text, corrected</h3><button class="toggle" data-toggle>Show clean</button></div>
+      <div class="corrected" data-corr>${diffHTML(reply, rev.corrected || reply)}</div>
+    </div>
+    ${notes.length ? `<div class="rsec"><h3 class="label">Notes</h3><ul class="notes">${notes.map(x => `
+      <li class="note k-${ORDER.includes(x.kind) ? x.kind : "wording"}">
+        <span class="kind">${esc(KIND[x.kind] || "Wording")}</span>
+        <div class="pair">${x.original ? `<span class="was">${esc(x.original)}</span>` : ""}${x.better ? `<span class="now">${esc(x.better)}</span>` : ""}</div>
+        ${x.why ? `<p class="why">${esc(x.why)}</p>` : ""}
+      </li>`).join("")}</ul></div>` : `<div class="rsec"><p class="hint">No notes. The corrected version says it all.</p></div>`}` : "";
+  const right = `
+    ${phr.length ? `<div class="rsec"><h3 class="label">${opts.customSource ? "From the text" : "From the passage"}</h3><ul class="phrases">${phr.map(x => `
+      <li class="phrase"><b>${esc(x.phrase)}</b>${x.status ? `<span class="chip ${x.status === "modern" ? "modern" : "dated"}">${x.status === "modern" ? "use it" : "dated"}</span>` : ""}
+        ${x.meaning ? `<p>${esc(x.meaning)}</p>` : ""}${x.example ? `<p class="use">${esc(x.example)}</p>` : ""}</li>`).join("")}</ul></div>` : ""}
+    ${aside ? `<div class="rsec"><h3 class="label">Worth pointing out</h3><div class="aside">${paras(aside).map(x => `<p style="margin:0 0 .8em">${esc(x)}</p>`).join("")}</div></div>` : ""}`;
+  container.innerHTML = `<div class="rgrid"${left ? "" : ' style="grid-template-columns:minmax(0,1fr)"'}><div class="rsec">${left || right}</div>${left ? `<div class="rsec">${right}</div>` : ""}</div>`;
+  const t = container.querySelector("[data-toggle]");
+  if (t) t.onclick = () => { const c = container.querySelector("[data-corr]"); const on = c.classList.toggle("clean"); t.textContent = on ? "Show changes" : "Show clean"; };
+}
+
+/* ---------- the review call ---------- */
+function buildPrompt(p, reply){
+  const hasReply = !!reply.trim();
+  const src = p.free ? "(no passage; free writing)" :
+    `${p.author || "Unknown author"}${p.work ? ", " + p.work : ""}${p.year ? " (" + p.year + ")" : ""}${p.title && p.custom ? ", " + p.title : ""}\n\n${p.text.slice(0, 24000)}`;
+  return `You are an English editor for an advanced non-native writer (a researcher whose first language is not English). Their goal is eloquence in intellectual discussion and in writing. They read the PASSAGE below and then wrote freely: a reaction, an argument, a summary, or nothing.
+
+PASSAGE
+${src}
+
+LEARNER'S TEXT
+${hasReply ? reply.slice(0, 20000) : "(none: the learner only read the passage)"}
+
+Reply with only one JSON object of this shape:
+{"corrected": string, "notes": [{"kind": "meaning"|"wording"|"grammar"|"structure", "original": string, "better": string, "why": string}], "passage_language": [{"phrase": string, "status": "modern"|"dated", "meaning": string, "example": string}], "worth_pointing_out": string}
+
+Rules:
+- corrected: the learner's whole text rewritten as a skilled native writer would put it, while keeping the learner's ideas, order, voice and level of formality. Fix every error and every unnatural word choice; do not add new ideas or polish into a different style. Keep paragraph breaks. Empty string if there is no learner text.
+- notes: at most 6, the most useful only, in this priority: meaning (wording that makes the reader misread the intended point), wording (unnatural words or collocations), grammar (especially in long, complex sentences), structure (how the argument is ordered and connected across sentences). "original" quotes the learner's words exactly; "better" gives the replacement; "why" explains in one or two plain sentences, naming the rule or the standard term when there is one. Empty list if there is no learner text.
+- passage_language: ${hasReply ? "3 to 5" : "6 to 8"} expressions from the passage worth learning (collocations, idioms, precise verbs, useful sentence frames), plus any from the learner's text that the corrected version introduced. status "modern" if a speaker today could use it naturally, "dated" if it is archaic or old-fashioned. meaning: one plain sentence. example: one natural modern sentence using it, on an intellectual topic. ${p.free ? "With no passage, take them from the corrected text only, or return an empty list." : ""}
+- worth_pointing_out: anything else genuinely worth saying (a pattern across the learner's errors, a flaw or strength in their reasoning, how the passage builds its argument). Plain English, at most 120 words. Empty string if nothing is worth saying; never add praise or filler.
+- Write all explanations in plain, correct English for a non-native reader.`;
+}
+async function runReview(){
+  const p = findPassage(state.current); if (!p || !sample || state.ctl) return;
+  const reply = $("#reply").value;
+  state.ctl = new AbortController();
+  $("#err").hidden = true; $("#busy").hidden = false; syncButtons();
+  const t0 = Date.now();
+  const tick = setInterval(() => { $("#busy-t").textContent = `Reviewing… ${Math.round((Date.now()-t0)/1000)}s (usually under a minute)`; }, 1000);
+  $("#busy-t").textContent = "Reviewing…";
+  try {
+    const rev = await sample.json(buildPrompt(p, reply), { signal: state.ctl.signal });
+    if (!rev || typeof rev !== "object") throw { code:"invalid_json" };
+    state.review = rev; state.reply = reply;
+    const rec = { id: "s" + Date.now().toString(36), type:"session", passageId:p.id,
+      source:{ title: p.free ? "Free page" : (p.custom || p.shelf ? p.title : p.section), author:p.author||"", work:p.work||"", year:p.year||"" },
+      reply, review: rev, createdAt: Date.now() };
+    await putRecord(rec);
+    ls.del("cp.draft." + p.id);
+    showReview(rec);
+  } catch(e){
+    if (!e || e.code !== "cancelled"){ $("#err").textContent = errText(e); $("#err").hidden = false; }
+  } finally {
+    clearInterval(tick); state.ctl = null; $("#busy").hidden = true; syncButtons();
+  }
+}
+function showReview(rec){
+  const box = $("#review");
+  const p = findPassage(rec.passageId);
+  box.innerHTML = `<div class="rhead"><h2>Review</h2><span class="label">${fmtDate(rec.createdAt)} · ${words(rec.reply)} words</span>
+    <button class="btn" id="b-next">Next passage</button></div><div id="rbody"></div>`;
+  renderReview($("#rbody"), rec.review, rec.reply, { customSource: p && p.custom });
+  $("#b-next").onclick = () => goNext();
+  box.hidden = false;
+  const rt = document.querySelector('.tabs [data-tab="review"]'); rt.disabled = false;
+  setTab("review");
+  if (window.matchMedia("(min-width: 861px)").matches) box.scrollIntoView({ behavior:"smooth", block:"start" });
+  $("#status").textContent = "Saved to History.";
+}
+
+/* ---------- views & tabs ---------- */
+function setView(v){
+  state.view = v;
+  document.querySelectorAll("nav.views button").forEach(b => b.setAttribute("aria-current", String(b.dataset.view === v)));
+  $("#v-today").hidden = v !== "today"; $("#v-library").hidden = v !== "library"; $("#v-history").hidden = v !== "history";
+  if (v === "history"){ $("#hist-detail").hidden = true; $("#hist-list").hidden = false; }
+  hideLook();
+  window.scrollTo({ top:0 });
+}
+function setTab(t){
+  state.tab = t; $("#v-today").dataset.tab = t;
+  document.querySelectorAll(".tabs button").forEach(b => b.setAttribute("aria-selected", String(b.dataset.tab === t)));
+  if (t !== "review") document.querySelector('.tabs [data-tab="review"]').disabled = $("#review").hidden;
+}
+document.querySelectorAll("nav.views button").forEach(b => b.onclick = () => setView(b.dataset.view));
+document.querySelectorAll(".tabs button").forEach(b => b.onclick = () => setTab(b.dataset.tab));
+
+/* ---------- library ---------- */
+let filter = "All";
+function renderLists(){
+  const done = new Map(); sessions().forEach(s => { if (!done.has(s.passageId)) done.set(s.passageId, s); });
+  const authors = ["All"].concat([...new Set(PASSAGES.map(p => p.author.split(" ").pop()))]);
+  if (shelfDrawn().length) authors.push("Shelf");
+  if (customTexts().length) authors.push("Yours");
+  $("#filters").innerHTML = authors.map(a => `<button aria-pressed="${a === filter}" data-a="${esc(a)}">${esc(a)}</button>`).join("");
+  $("#filters").querySelectorAll("button").forEach(b => b.onclick = () => { filter = b.dataset.a; renderLists(); });
+  const list = [FREE].concat(allPassages()).filter(p => filter === "All" || (filter === "Yours" ? p.custom : filter === "Shelf" ? p.shelf : (!p.free && !p.custom && !p.shelf && p.author.endsWith(filter))));
+  const left = unreadPool().length;
+  $("#shelfnote").textContent = left ? `${left} hand-picked passage${left > 1 ? "s" : ""} left. After that, new passages come from the shelf automatically.` : "The hand-picked passages are done. New passages now come from the shelf.";
+  $("#lib").innerHTML = list.map(p => {
+    const s = done.get(p.id);
+    const n = p.free ? "—" : p.custom ? "own" : p.shelf ? "shelf" : String(p.no).padStart(2,"0");
+    const title = p.free ? "Free page" : p.custom || p.shelf ? p.title : p.section;
+    const sub = p.free ? "No passage. Write about anything." : `${p.author || "Unknown"}${p.work ? ", " + p.work : ""}${p.year ? " (" + p.year + ")" : ""} · ${words(p.text)} words`;
+    return `<li><button class="row" data-id="${esc(p.id)}"><span class="n">${n}</span><span class="t">${esc(title)}</span>
+      <span class="st ${s ? "done" : ""}">${s && !p.free ? "written " + fmtDate(s.createdAt) : ""}</span><span class="s">${esc(sub)}</span></button></li>`;
+  }).join("");
+  $("#lib").querySelectorAll(".row").forEach(b => b.onclick = () => openPassage(b.dataset.id));
+  // history
+  const ss = sessions();
+  $("#hist-sum").textContent = ss.length ? `${ss.length} session${ss.length > 1 ? "s" : ""} · ${ss.reduce((n,s) => n + words(s.reply), 0)} words written` : "";
+  $("#hist").innerHTML = ss.length ? ss.map(s => `<li><button class="row" data-id="${esc(s.id)}"><span class="n">${new Date(s.createdAt).toLocaleDateString(undefined,{month:"2-digit",day:"2-digit"})}</span>
+      <span class="t">${esc(s.source && s.source.title || "Session")}</span><span class="st">${words(s.reply) ? words(s.reply) + " words" : "read only"}</span>
+      <span class="s">${esc(s.source && s.source.author || "")}${s.source && s.source.work ? ", " + esc(s.source.work) : ""}</span></button></li>`).join("")
+    : `<li class="empty">Nothing yet. Your reviewed writing will collect here, newest first.</li>`;
+  $("#hist").querySelectorAll(".row").forEach(b => b.onclick = () => openSession(b.dataset.id));
+}
+function openSession(id){
+  const s = records.find(r => r.id === id); if (!s) return;
+  const d = $("#hist-detail");
+  d.innerHTML = `<button class="btn quiet back" id="h-back">← All sessions</button>
+    <div class="histhead"><span class="label">${fmtDate(s.createdAt)}</span><h1>${esc(s.source.title)}</h1><p class="pby">${esc(s.source.author)}${s.source.work ? ", " + esc(s.source.work) : ""}</p></div>
+    ${words(s.reply) ? `<div class="rsec" style="margin-top:18px"><h3 class="label">What you wrote</h3><div class="reply-orig">${esc(s.reply)}</div></div>` : ""}
+    <div id="h-rev" style="margin-top:8px"></div>
+    ${findPassage(s.passageId) && s.passageId !== "free" ? `<p style="margin-top:24px"><button class="btn" id="h-open">Reread the passage</button></p>` : ""}`;
+  renderReview($("#h-rev"), s.review || {}, s.reply, { customSource: /^[tx]/.test(String(s.passageId)) });
+  $("#h-back").onclick = () => { d.hidden = true; $("#hist-list").hidden = false; };
+  const o = $("#h-open"); if (o) o.onclick = () => openPassage(s.passageId);
+  $("#hist-list").hidden = true; d.hidden = false; window.scrollTo({ top:0 });
+}
+$("#addform").addEventListener("submit", async ev => {
+  ev.preventDefault();
+  const body = $("#a-body").value.trim(), title = $("#a-title").value.trim() || "Untitled text";
+  if (words(body) < 20){ $("#a-msg").textContent = "Paste at least a paragraph."; return; }
+  const rec = { id: "t" + Date.now().toString(36), type:"text", title, author: $("#a-author").value.trim(), body: body.slice(0, 40000), createdAt: Date.now() };
+  await putRecord(rec);
+  $("#a-body").value = ""; $("#a-title").value = ""; $("#a-author").value = ""; $("#a-msg").textContent = "";
+  openPassage(rec.id);
+});
+
+/* ---------- backup: save and load ---------- */
+let downloads = null;
+if (window.claude && window.claude.use) claude.use("downloads").then(d => { downloads = d; }).catch(()=>{});
+const stamp = () => new Date().toISOString().slice(0,10);
+function toMarkdown(){
+  const out = [`# Commonplace Book — history`, `Saved ${stamp()}. ${sessions().length} sessions.`, ""];
+  for (const s of sessions()){
+    const r = s.review || {};
+    out.push(`## ${fmtDate(s.createdAt)} · ${s.source.title}`, `*${s.source.author}${s.source.work ? ", " + s.source.work : ""}*`, "");
+    if (words(s.reply)){
+      out.push("### What I wrote", "", s.reply.trim(), "", "### Corrected", "", String(r.corrected || "").trim(), "");
+      const notes = (r.notes || []).filter(Boolean);
+      if (notes.length){ out.push("### Notes", ""); notes.forEach(n => out.push(`- **${KIND[n.kind] || "Note"}:** ${n.original ? `~~${n.original}~~ → ` : ""}${n.better || ""}. ${n.why || ""}`)); out.push(""); }
+    }
+    const ph = (r.passage_language || []).filter(x => x && x.phrase);
+    if (ph.length){ out.push("### Language from the passage", ""); ph.forEach(x => out.push(`- **${x.phrase}**${x.status === "dated" ? " (dated)" : ""}: ${x.meaning || ""} *${x.example || ""}*`)); out.push(""); }
+    if (String(r.worth_pointing_out || "").trim()) out.push("### Worth pointing out", "", r.worth_pointing_out.trim(), "");
+  }
+  return out.join("\n");
+}
+async function saveFile(filename, data){
+  const m = $("#x-msg");
+  if (!downloads){ m.textContent = "Saving files isn't available in this view. Open the page on claude.ai and try again."; return; }
+  try { const r = await downloads.save({ filename, data }); m.textContent = r && r.status === "saved" ? `Saved ${filename}.` : ""; }
+  catch(e){ m.textContent = e && e.code === "unavailable" ? "Saving files isn't available in this view." : ""; }
+}
+$("#x-md").onclick = () => saveFile(`commonplace-${stamp()}.md`, toMarkdown());
+$("#x-json").onclick = () => saveFile(`commonplace-backup-${stamp()}.json`, JSON.stringify({ app:"commonplace-book", version:1, saved:Date.now(), records }, null, 1));
+$("#x-file").addEventListener("change", async ev => {
+  const f = ev.target.files && ev.target.files[0]; const m = $("#x-msg"); if (!f) return;
+  try {
+    const data = JSON.parse(await f.text());
+    const incoming = Array.isArray(data.records) ? data.records : [];
+    const have = new Set(records.map(r => r.id));
+    const fresh = incoming.filter(r => r && typeof r.id === "string" && r.type && !have.has(r.id));
+    for (const r of fresh) await putRecord(r);
+    m.textContent = fresh.length ? `Loaded ${fresh.length} item${fresh.length > 1 ? "s" : ""}.` : "Nothing new in that file.";
+  } catch(e){ m.textContent = "That file isn't a Commonplace Book backup."; }
+  ev.target.value = "";
+});
+$("#b-shelf").onclick = () => drawFromShelf();
+
+/* ---------- writing ---------- */
+$("#reply").addEventListener("input", () => { ls.set("cp.draft." + state.current, $("#reply").value); updateCount(); });
+$("#b-review").onclick = runReview;
+$("#b-stop").onclick = () => state.ctl && state.ctl.abort();
+$("#b-skip").onclick = async () => { await markSkipped(state.current); goNext(); };
+
+/* ---------- select to explain ---------- */
+let lookCtl = null, lookSel = null;
+function hideLook(){ $("#lookbtn").hidden = true; }
+function checkSelection(){
+  const sel = window.getSelection(); const pt = $("#ptext");
+  if (!sel || sel.isCollapsed || !pt || !sample){ hideLook(); return; }
+  const r = sel.getRangeAt(0);
+  if (!pt.contains(r.commonAncestorContainer)){ hideLook(); return; }
+  const q = sel.toString().replace(/\s+/g, " ").trim();
+  if (!q || q.split(" ").length > 25){ hideLook(); return; }
+  const rect = r.getBoundingClientRect();
+  const b = $("#lookbtn");
+  b.style.left = Math.min(Math.max(rect.left + rect.width/2, 50), window.innerWidth - 50) + "px";
+  b.style.top = Math.max(rect.top, 70) + "px";
+  const node = r.startContainer.nodeType === 3 ? r.startContainer.parentElement : r.startContainer;
+  const para = node.closest("p");
+  lookSel = { q, ctx: para ? para.textContent : "" };
+  b.hidden = false;
+}
+let selT; document.addEventListener("selectionchange", () => { clearTimeout(selT); selT = setTimeout(checkSelection, 250); });
+window.addEventListener("scroll", hideLook, { passive:true });
+$("#lookbtn").addEventListener("mousedown", e => e.preventDefault());
+$("#lookbtn").onclick = async () => {
+  if (!lookSel || !sample) return;
+  const { q, ctx } = lookSel; hideLook();
+  const p = findPassage(state.current);
+  if (lookCtl) lookCtl.abort();
+  lookCtl = new AbortController();
+  $("#dock").hidden = false; $("#dock-q").textContent = "“" + q + "”"; $("#dock-a").textContent = "Thinking…";
+  try {
+    await sample(`An advanced non-native English reader selected an expression in a text by ${p.author || "an author"}${p.year ? " (" + p.year + ")" : ""}.
+Expression: "${q}"
+Sentence context: "${ctx.slice(0, 1500)}"
+
+Explain it in plain English, in this exact format and nothing else:
+Meaning: one or two sentences on what it means here.
+Register: modern / formal / dated / archaic, and whether a speaker today would use it.
+Use it: one natural modern sentence on an intellectual topic (or the modern equivalent, if it is dated).
+Grammar: only if the expression's grammar is unusual, one sentence; otherwise leave this line out.`,
+      { modelTier:"quick", signal: lookCtl.signal, onText: ({ text }) => { $("#dock-a").textContent = text; } });
+  } catch(e){ if (!e || e.code !== "cancelled") $("#dock-a").textContent = errText(e); }
+};
+$("#dock-x").onclick = () => { $("#dock").hidden = true; if (lookCtl) lookCtl.abort(); };
+
+/* ---------- theme: system → light → dark ---------- */
+const THEMES = ["system","light","dark"];
+const ICON = {
+  system:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 4v16" /><path d="M12 4a8 8 0 0 1 0 16z" fill="currentColor"/></svg>',
+  light:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>',
+  dark:'<svg viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/></svg>'
+};
+function applyTheme(t){
+  if (t === "system") document.documentElement.removeAttribute("data-theme");
+  else document.documentElement.setAttribute("data-theme", t);
+  const b = $("#theme");
+  b.innerHTML = ICON[t] + `<span>${t[0].toUpperCase() + t.slice(1)}</span>`;
+  b.title = "Theme: " + t + ". Click to change.";
+}
+let theme = THEMES.includes(ls.get("cp.theme")) ? ls.get("cp.theme") : "system";
+applyTheme(theme);
+$("#theme").onclick = () => { theme = THEMES[(THEMES.indexOf(theme) + 1) % 3]; ls.set("cp.theme", theme); applyTheme(theme); };
+
+/* ---------- boot ---------- */
+initStore();
+startToday();
+renderLists();
+})();
+</script>

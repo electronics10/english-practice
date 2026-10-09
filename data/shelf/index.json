@@ -1,0 +1,168 @@
+{
+ "books": [
+  {
+   "repo": "g-k-chesterton_orthodoxy",
+   "title": "Orthodoxy",
+   "author": "G. K. Chesterton",
+   "n": 148
+  },
+  {
+   "repo": "g-k-chesterton_heretics",
+   "title": "Heretics",
+   "author": "G. K. Chesterton",
+   "n": 150
+  },
+  {
+   "repo": "g-k-chesterton_whats-wrong-with-the-world",
+   "title": "What’s Wrong with the World",
+   "author": "G. K. Chesterton",
+   "n": 139
+  },
+  {
+   "repo": "john-stuart-mill_on-liberty",
+   "title": "On Liberty",
+   "author": "John Stuart Mill",
+   "n": 121
+  },
+  {
+   "repo": "john-stuart-mill_the-subjection-of-women",
+   "title": "The Subjection of Women",
+   "author": "John Stuart Mill",
+   "n": 110
+  },
+  {
+   "repo": "bertrand-russell_the-problems-of-philosophy",
+   "title": "The Problems of Philosophy",
+   "author": "Bertrand Russell",
+   "n": 102
+  },
+  {
+   "repo": "david-hume_an-enquiry-concerning-human-understanding",
+   "title": "An Enquiry Concerning Human Understanding",
+   "author": "David Hume",
+   "n": 113
+  },
+  {
+   "repo": "william-james_pragmatism",
+   "title": "Pragmatism",
+   "author": "William James",
+   "n": 129
+  },
+  {
+   "repo": "william-james_the-varieties-of-religious-experience",
+   "title": "The Varieties of Religious Experience",
+   "author": "William James",
+   "n": 160
+  },
+  {
+   "repo": "ralph-waldo-emerson_essays",
+   "title": "Essays",
+   "author": "Ralph Waldo Emerson",
+   "n": 160
+  },
+  {
+   "repo": "henry-david-thoreau_walden",
+   "title": "Walden",
+   "author": "Henry David Thoreau",
+   "n": 160
+  },
+  {
+   "repo": "henry-david-thoreau_essays",
+   "title": "Essays",
+   "author": "Henry David Thoreau",
+   "n": 160
+  },
+  {
+   "repo": "marcus-aurelius_meditations_george-long",
+   "title": "Meditations",
+   "author": "Marcus Aurelius",
+   "n": 114
+  },
+  {
+   "repo": "epictetus_short-works_george-long",
+   "title": "Short Works",
+   "author": "Epictetus",
+   "n": 43
+  },
+  {
+   "repo": "seneca_dialogues_aubrey-stewart",
+   "title": "Dialogues",
+   "author": "Seneca",
+   "n": 160
+  },
+  {
+   "repo": "friedrich-nietzsche_beyond-good-and-evil_helen-zimmern",
+   "title": "Beyond Good and Evil",
+   "author": "Friedrich Nietzsche",
+   "n": 152
+  },
+  {
+   "repo": "william-hazlitt_table-talk",
+   "title": "Table-Talk",
+   "author": "William Hazlitt",
+   "n": 160
+  },
+  {
+   "repo": "alexander-hamilton_john-jay_james-madison_the-federalist-papers",
+   "title": "The Federalist Papers",
+   "author": "Alexander Hamilton",
+   "n": 160
+  },
+  {
+   "repo": "mary-wollstonecraft_a-vindication-of-the-rights-of-woman",
+   "title": "A Vindication of the Rights of Woman",
+   "author": "Mary Wollstonecraft",
+   "n": 160
+  },
+  {
+   "repo": "thorstein-veblen_the-theory-of-the-leisure-class",
+   "title": "The Theory of the Leisure Class",
+   "author": "Thorstein Veblen",
+   "n": 160
+  },
+  {
+   "repo": "w-e-b-du-bois_the-souls-of-black-folk",
+   "title": "The Souls of Black Folk",
+   "author": "W. E. B. Du Bois",
+   "n": 160
+  },
+  {
+   "repo": "john-dewey_democracy-and-education",
+   "title": "Democracy and Education",
+   "author": "John Dewey",
+   "n": 160
+  },
+  {
+   "repo": "plato_dialogues_benjamin-jowett",
+   "title": "Dialogues",
+   "author": "Plato",
+   "n": 160
+  },
+  {
+   "repo": "thomas-paine_the-rights-of-man",
+   "title": "The Rights of Man",
+   "author": "Thomas Paine",
+   "n": 160
+  },
+  {
+   "repo": "john-locke_two-treatises-of-government",
+   "title": "Two Treatises of Government",
+   "author": "John Locke",
+   "n": 160
+  },
+  {
+   "repo": "matthew-arnold_culture-and-anarchy",
+   "title": "Culture and Anarchy",
+   "author": "Matthew Arnold",
+   "n": 150
+  },
+  {
+   "repo": "edmund-burke_reflections-on-the-revolution-in-france",
+   "title": "Reflections on the Revolution in France",
+   "author": "Edmund Burke",
+   "n": 160
+  }
+ ],
+ "source": "Standard Ebooks, public domain",
+ "built": "2026-10-09"
+}
