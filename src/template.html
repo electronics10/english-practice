@@ -1,4 +1,4 @@
-<title>Commonplace Book</title>
+<title>English Practice</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,600;1,7..72,400;1,7..72,500&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
@@ -173,7 +173,7 @@ label.btn{cursor:pointer}
 </style>
 
 <header class="top"><div class="top-in">
-  <div class="mark">Commonplace Book<small>English, slowly</small></div>
+  <div class="mark">English Practice<small>Read · Write · Review</small></div>
   <nav class="views" aria-label="Views">
     <button data-view="today" aria-current="true">Today</button>
     <button data-view="library">Library</button>
@@ -630,7 +630,7 @@ let downloads = null;
 if (window.claude && window.claude.use) claude.use("downloads").then(d => { downloads = d; }).catch(()=>{});
 const stamp = () => new Date().toISOString().slice(0,10);
 function toMarkdown(){
-  const out = [`# Commonplace Book — history`, `Saved ${stamp()}. ${sessions().length} sessions.`, ""];
+  const out = [`# English Practice — history`, `Saved ${stamp()}. ${sessions().length} sessions.`, ""];
   for (const s of sessions()){
     const r = s.review || {};
     out.push(`## ${fmtDate(s.createdAt)} · ${s.source.title}`, `*${s.source.author}${s.source.work ? ", " + s.source.work : ""}*`, "");
@@ -651,8 +651,8 @@ async function saveFile(filename, data){
   try { const r = await downloads.save({ filename, data }); m.textContent = r && r.status === "saved" ? `Saved ${filename}.` : ""; }
   catch(e){ m.textContent = e && e.code === "unavailable" ? "Saving files isn't available in this view." : ""; }
 }
-$("#x-md").onclick = () => saveFile(`commonplace-${stamp()}.md`, toMarkdown());
-$("#x-json").onclick = () => saveFile(`commonplace-backup-${stamp()}.json`, JSON.stringify({ app:"commonplace-book", version:1, saved:Date.now(), records }, null, 1));
+$("#x-md").onclick = () => saveFile(`english-practice-${stamp()}.md`, toMarkdown());
+$("#x-json").onclick = () => saveFile(`english-practice-backup-${stamp()}.json`, JSON.stringify({ app:"english-practice", version:1, saved:Date.now(), records }, null, 1));
 $("#x-file").addEventListener("change", async ev => {
   const f = ev.target.files && ev.target.files[0]; const m = $("#x-msg"); if (!f) return;
   try {
@@ -662,7 +662,7 @@ $("#x-file").addEventListener("change", async ev => {
     const fresh = incoming.filter(r => r && typeof r.id === "string" && r.type && !have.has(r.id));
     for (const r of fresh) await putRecord(r);
     m.textContent = fresh.length ? `Loaded ${fresh.length} item${fresh.length > 1 ? "s" : ""}.` : "Nothing new in that file.";
-  } catch(e){ m.textContent = "That file isn't a Commonplace Book backup."; }
+  } catch(e){ m.textContent = "That file isn't an English Practice backup."; }
   ev.target.value = "";
 });
 $("#b-shelf").onclick = () => drawFromShelf();

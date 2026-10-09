@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Assemble dist/commonplace.html from src/template.html + data/library.json,
+"""Assemble dist/english-practice.html from src/template.html + data/library.json,
 and copy the shelf to dist/shelf/. Publish dist/ as described in README.md."""
 import json, shutil
 from pathlib import Path
@@ -14,8 +14,8 @@ dist = ROOT / "dist"
 if dist.exists():
     shutil.rmtree(dist)
 (dist / "shelf").mkdir(parents=True)
-(dist / "commonplace.html").write_text(page)
+(dist / "english-practice.html").write_text(page)
 for f in sorted((ROOT / "data/shelf").glob("*.json")):
     shutil.copy(f, dist / "shelf" / f.name)
 n = len(list((dist / "shelf").glob("*.json")))
-print(f"dist/commonplace.html ({len(page)//1024} KB) + {n} shelf files")
+print(f"dist/english-practice.html ({len(page)//1024} KB) + {n} shelf files")
