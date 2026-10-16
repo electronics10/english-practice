@@ -163,7 +163,42 @@ label.btn{cursor:pointer}
 .rv-state .dot{width:6px;height:6px}
 .rv-used{font-size:13px;color:var(--ink-2)}
 
+/* keep buttons */
+.phrase-top{display:flex;gap:10px;align-items:baseline;justify-content:space-between}
+.keep{flex:none;border:1px solid var(--rule);background:var(--paper);border-radius:999px;padding:2px 10px;font-size:12px;font-weight:500;color:var(--ink-2)}
+.keep:hover{border-color:var(--accent);color:var(--accent)}
+.keep[aria-pressed="true"]{border-color:var(--ins);color:var(--ins);background:none;cursor:default}
+
+/* how do I say */
+.ask{background:var(--sheet);border:1px solid var(--rule);border-radius:4px;padding:16px 18px;margin-top:18px}
+.ask form{display:flex;gap:8px;flex-wrap:wrap}
+.ask input[type=text]{flex:1 1 260px;background:var(--paper)}
+.ask-out{margin-top:14px;display:grid;gap:10px}
+.ask-out .avoid{font-size:14px;color:var(--ink-2);margin:0}
+.ask-out .avoid b{color:var(--del);font-weight:500}
+
+/* recall: one card at a time, the cue on top, the answer under the rule */
+.rc-card{background:var(--sheet);border:1px solid var(--rule);border-radius:4px;padding:28px 30px;max-width:680px}
+.rc-src{display:flex;gap:10px;justify-content:space-between;flex-wrap:wrap}
+.rc-cue{font-family:var(--serif);font-size:21px;line-height:1.55;margin:14px 0 6px;text-wrap:pretty}
+.rc-cue .gap{display:inline-block;min-width:5em;border-bottom:2px solid var(--accent);color:transparent}
+.rc-hint{font-size:14px;color:var(--ink-2);margin:0}
+.rc-ans{border-top:1px solid var(--rule);margin-top:20px;padding-top:16px;display:grid;gap:6px}
+.rc-ans b{font-family:var(--serif);font-weight:600;font-size:22px}
+.rc-ans p{margin:0;font-size:15px;color:var(--ink-2)}
+.rc-ans .use{font-style:italic;color:var(--ink)}
+.rc-bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:20px}
+.rc-bar .grow{margin-right:auto}
+.rc-done{font-family:var(--serif);font-size:19px;line-height:1.6;color:var(--ink-2);max-width:62ch;margin:0}
+.rc-all{margin-top:36px}
+.rc-all h2{font-family:var(--serif);font-weight:500;font-style:italic;font-size:20px;margin:0 0 10px}
+.drop{border:0;background:none;color:var(--ink-3);font-size:12px;padding:0}
+.drop:hover{color:var(--del)}
+
 @media (max-width:860px){
+  .rc-card{padding:22px 18px}
+  .rc-cue{font-size:19px}
+  nav.views button{padding:6px 10px}
   .rv-grid{grid-template-columns:minmax(0,1fr);gap:16px}
   #rv-body{min-height:38vh}
 }
@@ -196,6 +231,7 @@ label.btn{cursor:pointer}
   <nav class="views" aria-label="Views">
     <button data-view="today" aria-current="true">Today</button>
     <button data-view="revise">Revise</button>
+    <button data-view="recall">Recall</button>
     <button data-view="library">Library</button>
     <button data-view="history">History</button>
   </nav>
@@ -230,7 +266,11 @@ label.btn{cursor:pointer}
 
   <section id="v-revise" hidden>
     <div class="listhead"><h1>Revise</h1></div>
-    <p class="rv-intro">Paste anything you wrote: a message, an email, a post, or a whole chat. Only your own lines are corrected, and they are corrected for their setting, so a casual chat stays casual.</p>
+    <div class="ask">
+      <form id="ask-form"><input type="text" id="ask-q" placeholder="How do I say… (Chinese is fine: 籃球沒有摩擦力)" autocomplete="off"><button class="btn primary" type="submit" id="ask-go">Ask</button></form>
+      <div class="ask-out" id="ask-out" hidden></div>
+    </div>
+    <p class="rv-intro" style="margin-top:22px">Or paste anything you wrote: a message, an email, a post, or a whole chat. Only your own lines are corrected, and they are corrected for their setting, so a casual chat stays casual.</p>
     <div class="rv-grid" style="margin-top:18px">
       <div>
         <textarea id="rv-body" placeholder="Paste your writing here. A whole conversation is fine."></textarea>
@@ -252,6 +292,12 @@ label.btn{cursor:pointer}
       </div>
     </div>
     <section class="review" id="rv-review" hidden></section>
+  </section>
+
+  <section id="v-recall" hidden>
+    <div class="listhead"><h1>Recall</h1><span class="hint" id="rc-sum"></span></div>
+    <div id="rc-main"></div>
+    <div class="rc-all" id="rc-all"></div>
   </section>
 
   <section id="v-library" hidden>
@@ -291,6 +337,7 @@ label.btn{cursor:pointer}
   <div class="label">Explain</div>
   <div class="q" id="dock-q"></div>
   <div class="a" id="dock-a"></div>
+  <div class="wbar" id="dock-bar" hidden><span class="count"></span><button class="keep" id="dock-keep" type="button">Keep</button></div>
 </div>
 
 <script type="application/json" id="passages-data">__LIBRARY__</script>
@@ -531,13 +578,42 @@ function renderReview(container, rev, reply, opts = {}){
         ${x.why ? `<p class="why">${esc(x.why)}</p>` : ""}
       </li>`).join("")}</ul></div>` : `<div class="rsec"><p class="hint">No notes. The corrected version says it all.</p></div>`}` : "";
   const right = `
-    ${phr.length ? `<div class="rsec"><h3 class="label">${opts.phraseLabel || (opts.customSource ? "From the text" : "From the passage")}</h3><ul class="phrases">${phr.map(x => `
-      <li class="phrase"><b>${esc(x.phrase)}</b>${x.status ? `<span class="chip ${x.status === "modern" ? "modern" : "dated"}">${x.status === "modern" ? "use it" : "dated"}</span>` : ""}
+    ${phr.length ? `<div class="rsec"><h3 class="label">${opts.phraseLabel || (opts.customSource ? "From the text" : "From the passage")}</h3><ul class="phrases">${phr.map((x,i) => `
+      <li class="phrase"><div class="phrase-top"><span><b>${esc(x.phrase)}</b>${x.status ? `<span class="chip ${x.status === "modern" ? "modern" : "dated"}">${x.status === "modern" ? "use it" : "dated"}</span>` : ""}</span>${opts.keepSource ? keepBtn(x.phrase, i) : ""}</div>
         ${x.meaning ? `<p>${esc(x.meaning)}</p>` : ""}${x.example ? `<p class="use">${esc(x.example)}</p>` : ""}</li>`).join("")}</ul></div>` : ""}
     ${aside ? `<div class="rsec"><h3 class="label">Worth pointing out</h3><div class="aside">${paras(aside).map(x => `<p style="margin:0 0 .8em">${esc(x)}</p>`).join("")}</div></div>` : ""}`;
   container.innerHTML = `<div class="rgrid"${left ? "" : ' style="grid-template-columns:minmax(0,1fr)"'}><div class="rsec">${left || right}</div>${left ? `<div class="rsec">${right}</div>` : ""}</div>`;
   const t = container.querySelector("[data-toggle]");
   if (t) t.onclick = () => { const c = container.querySelector("[data-corr]"); const on = c.classList.toggle("clean"); t.textContent = on ? "Show changes" : "Show clean"; };
+  if (opts.keepSource) wireKeeps(container, i => {
+    const x = phr[i];
+    return { phrase:x.phrase, meaning:x.meaning || "", example:x.example || "", dated: x.status === "dated", source: opts.keepSource };
+  });
+}
+
+/* ---------- kept phrases: the recall deck ---------- */
+const normPhrase = s => String(s || "").toLowerCase().replace(/[“”"‘’'.,;:!?()]/g, "").replace(/\s+/g, " ").trim();
+const kept = () => records.filter(r => r.type === "phrase" && !r.dropped);
+const isKept = p => { const n = normPhrase(p); return kept().some(r => normPhrase(r.phrase) === n); };
+function keepBtn(phrase, i){
+  const on = isKept(phrase);
+  return `<button class="keep" type="button" data-k="${i}" aria-pressed="${on}">${on ? "Kept" : "Keep"}</button>`;
+}
+function wireKeeps(container, getItem){
+  container.querySelectorAll("button.keep[data-k]").forEach(b => b.onclick = async () => {
+    if (b.getAttribute("aria-pressed") === "true") return;
+    b.setAttribute("aria-pressed", "true"); b.textContent = "Kept";
+    await keepPhrase(getItem(+b.dataset.k));
+  });
+}
+async function keepPhrase(item){
+  if (!item || !String(item.phrase || "").trim() || isKept(item.phrase)) return;
+  const n = normPhrase(item.phrase);
+  const old = records.find(r => r.type === "phrase" && r.dropped && normPhrase(r.phrase) === n);
+  const now = Date.now();
+  await putRecord({ id: old ? old.id : "p" + now.toString(36) + Math.random().toString(36).slice(2,5), type:"phrase",
+    phrase: String(item.phrase).trim().slice(0, 200), meaning: String(item.meaning || "").slice(0, 400), example: String(item.example || "").slice(0, 400),
+    cue: String(item.cue || "").slice(0, 600), dated: !!item.dated, source: item.source || {}, box:1, due: now, createdAt: now });
 }
 
 /* ---------- the review call ---------- */
@@ -592,7 +668,7 @@ function showReview(rec){
   const p = findPassage(rec.passageId);
   box.innerHTML = `<div class="rhead"><h2>Review</h2><span class="label">${fmtDate(rec.createdAt)} · ${words(rec.reply)} words</span>
     <button class="btn" id="b-next">Next passage</button></div><div id="rbody"></div>`;
-  renderReview($("#rbody"), rec.review, rec.reply, { customSource: p && p.custom });
+  renderReview($("#rbody"), rec.review, rec.reply, { customSource: p && p.custom, keepSource: { kind:"passage", title: rec.source.title, author: rec.source.author, sessionId: rec.id } });
   $("#b-next").onclick = () => goNext();
   box.hidden = false;
   const rt = document.querySelector('.tabs [data-tab="review"]'); rt.disabled = false;
@@ -605,7 +681,8 @@ function showReview(rec){
 function setView(v){
   state.view = v;
   document.querySelectorAll("nav.views button").forEach(b => b.setAttribute("aria-current", String(b.dataset.view === v)));
-  $("#v-today").hidden = v !== "today"; $("#v-revise").hidden = v !== "revise"; $("#v-library").hidden = v !== "library"; $("#v-history").hidden = v !== "history";
+  $("#v-today").hidden = v !== "today"; $("#v-revise").hidden = v !== "revise"; $("#v-recall").hidden = v !== "recall";
+  if (v === "recall") rcStart(); $("#v-library").hidden = v !== "library"; $("#v-history").hidden = v !== "history";
   if (v === "history"){ $("#hist-detail").hidden = true; $("#hist-list").hidden = false; }
   hideLook();
   window.scrollTo({ top:0 });
@@ -647,6 +724,7 @@ function renderLists(){
       <span class="s">${esc(s.source && s.source.author || "")}${s.source && s.source.work ? ", " + esc(s.source.work) : ""}</span></button></li>`).join("")
     : `<li class="empty">Nothing yet. Your reviewed writing will collect here, newest first.</li>`;
   $("#hist").querySelectorAll(".row").forEach(b => b.onclick = () => openSession(b.dataset.id));
+  rcSummary();
 }
 function openSession(id){
   const s = records.find(r => r.id === id); if (!s) return;
@@ -657,7 +735,8 @@ function openSession(id){
     <div id="h-rev" style="margin-top:8px"></div>
     ${findPassage(s.passageId) && s.passageId !== "free" ? `<p style="margin-top:24px"><button class="btn" id="h-open">Reread the passage</button></p>` : ""}`;
   const hp = findPassage(s.passageId);
-  renderReview($("#h-rev"), s.review || {}, s.reply, s.kind === "revise" ? { phraseLabel: "Worth keeping" } : { customSource: !!(hp && hp.custom) });
+  const ks = { kind: s.kind === "revise" ? "revise" : "passage", title: s.source.title, author: s.source.author, sessionId: s.id };
+  renderReview($("#h-rev"), s.review || {}, s.reply, s.kind === "revise" ? { phraseLabel: "Worth keeping", keepSource: ks } : { customSource: !!(hp && hp.custom), keepSource: ks });
   $("#h-back").onclick = () => { d.hidden = true; $("#hist-list").hidden = false; };
   const o = $("#h-open"); if (o) o.onclick = () => openPassage(s.passageId);
   $("#hist-list").hidden = true; d.hidden = false; window.scrollTo({ top:0 });
@@ -846,7 +925,7 @@ function rvShow(rec){
   const used = [c.setting, c.register, c.speaker && "your lines: " + c.speaker].filter(Boolean).join(" · ");
   box.innerHTML = `<div class="rhead"><h2>Review</h2><span class="label">${fmtDate(rec.createdAt)} · ${words(rec.reply)} words</span></div>
     ${used ? `<p class="rv-used">Reviewed as ${esc(used)}. If that’s wrong, change it above and review again.</p>` : ""}<div id="rv-rbody"></div>`;
-  renderReview($("#rv-rbody"), rec.review, rec.reply, { phraseLabel:"Worth keeping" });
+  renderReview($("#rv-rbody"), rec.review, rec.reply, { phraseLabel:"Worth keeping", keepSource: { kind:"revise", title: rec.source.title, sessionId: rec.id } });
   box.hidden = false;
   box.scrollIntoView({ behavior:"smooth", block:"start" });
 }
@@ -864,6 +943,128 @@ $("#rv-clear").onclick = () => {
   RV.touched = {}; RV.guessedFor = ""; RV.lastRun = null; $("#rv-review").hidden = true; $("#rv-err").hidden = true;
   rvState("Paste some text and Claude fills these in. Change anything that’s wrong."); rvSave(); rvSync();
 };
+
+/* ---------- how do I say: short everyday questions ---------- */
+let askCtl = null;
+$("#ask-form").addEventListener("submit", async ev => {
+  ev.preventDefault();
+  const q = $("#ask-q").value.trim(), out = $("#ask-out");
+  if (!q) return;
+  if (!sample){ out.hidden = false; out.innerHTML = `<p class="hint">Answers need Claude, which runs when this page is open in Claude.</p>`; return; }
+  if (askCtl) askCtl.abort();
+  const ctl = askCtl = new AbortController();
+  out.hidden = false; out.innerHTML = `<div class="busy" style="margin:0"><span class="dot"></span><span>Finding how people say it…</span></div>`;
+  try {
+    const r = await sample.json(`An advanced non-native English speaker (a researcher whose first language is Chinese) wants to know how to say something in natural, everyday English. The question may be in Chinese, English, or a mix. It is usually about daily life, not academic writing.
+
+QUESTION
+${q.slice(0, 1500)}
+
+Give the 2 or 3 ways a native speaker would actually say it, the most common first. Prefer what people really say over literal translations.
+
+Reply with only JSON:
+{"options": [{"phrase": "the key expression, as short as possible", "sentence": "one full natural sentence using it in this situation", "register": "casual"|"neutral"|"formal", "note": "one plain sentence on when to use it or how it differs from the others"}], "avoid": "a literal translation a learner might try that sounds wrong, and why, in one sentence; empty string if none"}
+
+Write in plain, correct English for a non-native reader.`, { modelTier:"quick", signal: ctl.signal });
+    if (ctl !== askCtl) return;
+    const opts = (Array.isArray(r && r.options) ? r.options : []).filter(o => o && o.phrase).slice(0, 3);
+    if (!opts.length) throw { code:"invalid_json" };
+    const avoid = String(r.avoid || "").trim();
+    out.innerHTML = `<ul class="phrases">${opts.map((o,i) => `<li class="phrase"><div class="phrase-top"><span><b>${esc(o.phrase)}</b>${REGISTERS.includes(o.register) ? `<span class="chip">${esc(o.register)}</span>` : ""}</span>${keepBtn(o.phrase, i)}</div>
+      ${o.sentence ? `<p class="use">${esc(o.sentence)}</p>` : ""}${o.note ? `<p>${esc(o.note)}</p>` : ""}</li>`).join("")}</ul>
+      ${avoid ? `<p class="avoid"><b>Avoid:</b> ${esc(avoid)}</p>` : ""}`;
+    wireKeeps(out, i => ({ phrase: opts[i].phrase, meaning: opts[i].note || "", example: opts[i].sentence || "", cue: q, source:{ kind:"ask", title: q.slice(0, 120) } }));
+  } catch(e){
+    if (e && e.code === "cancelled") return;
+    out.innerHTML = `<p class="err" style="margin:0">${esc(errText(e))}</p>`;
+  } finally { if (ctl === askCtl) askCtl = null; }
+});
+
+/* ---------- recall: Leitner boxes over the kept phrases ---------- */
+const DAY = 864e5, INTERVAL = [0, 1, 2, 4, 8, 16], NEW_PER_DAY = 10;
+const dayStart = () => { const d = new Date(); d.setHours(0,0,0,0); return d.getTime(); };
+const escRe = s => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+const SRC = { passage:"From a passage", revise:"From your writing", ask:"You asked", explain:"From Explain" };
+function recallQueue(now = Date.now()){
+  const ks = kept();
+  const due = ks.filter(r => r.seen && r.due <= now).sort((a,b) => a.due - b.due);
+  const newToday = ks.filter(r => r.seen && r.seen >= dayStart()).length;
+  const fresh = ks.filter(r => !r.seen).sort((a,b) => a.createdAt - b.createdAt).slice(0, Math.max(0, NEW_PER_DAY - newToday));
+  return due.concat(fresh).map(r => r.id);
+}
+function graded(r, ok, now = Date.now()){
+  const box = ok ? Math.min((r.box || 1) + 1, 5) : 1;
+  return { ...r, box, due: now + INTERVAL[box] * DAY, seen: r.seen || now, last: now, reps: (r.reps || 0) + 1, lapses: (r.lapses || 0) + (ok ? 0 : 1) };
+}
+function blankIn(text, phrase){
+  const m = phrase && String(text || "").match(new RegExp(escRe(phrase), "i"));
+  if (!m) return null;
+  return esc(text.slice(0, m.index)) + `<span class="gap" aria-label="blank">${esc(m[0])}</span>` + esc(text.slice(m.index + m[0].length));
+}
+function cueFor(r){
+  const k = r.source && r.source.kind;
+  if (k === "ask" && r.cue) return { html: esc(r.cue), hint: "How would you say this?" };
+  const b = blankIn(r.example, r.phrase) || (k === "explain" ? blankIn(r.cue, r.phrase) : null);
+  if (b) return { html: b, hint: r.meaning ? "Meaning: " + r.meaning : "" };
+  return { html: esc(r.meaning || r.example || r.cue || ""), hint: "Which expression means this?" };
+}
+const RC = { queue:[], revealed:false, retried:new Set() };
+function rcStart(){ RC.queue = recallQueue(); RC.revealed = false; RC.retried = new Set(); rcRender(); }
+function rcRender(){
+  rcSummary();
+  const main = $("#rc-main");
+  RC.queue = RC.queue.filter(id => kept().some(r => r.id === id));
+  const r = RC.queue.length && kept().find(x => x.id === RC.queue[0]);
+  if (!r){
+    const ks = kept();
+    if (!ks.length){ main.innerHTML = `<p class="rc-done">Nothing kept yet. Press <b>Keep</b> on a phrase in any review, in an Explain answer, or in a “How do I say” answer, and it comes back here to practise.</p>`; return; }
+    const next = ks.filter(x => x.seen).map(x => x.due).sort((a,b) => a - b)[0];
+    const waiting = ks.filter(x => !x.seen).length;
+    main.innerHTML = `<p class="rc-done">Nothing due right now.${next ? ` The next phrase comes back on ${fmtDate(Math.max(next, Date.now()))}.` : ""}${waiting ? ` ${waiting} new phrase${waiting > 1 ? "s" : ""} wait${waiting > 1 ? "" : "s"} for tomorrow (${NEW_PER_DAY} new a day).` : ""}</p>`;
+    return;
+  }
+  const c = cueFor(r), s = r.source || {};
+  main.innerHTML = `<div class="rc-card">
+    <div class="rc-src"><span class="label">${esc(SRC[s.kind] || "Kept")}${r.seen ? "" : " · new"}</span><span class="label">${RC.queue.length} left</span></div>
+    <p class="rc-cue">${c.html}</p>${c.hint ? `<p class="rc-hint">${esc(c.hint)}</p>` : ""}
+    ${RC.revealed ? `<div class="rc-ans"><b>${esc(r.phrase)}</b>${r.dated ? `<span><span class="chip dated" style="margin:0">dated</span></span>` : ""}
+      ${r.meaning ? `<p>${esc(r.meaning)}</p>` : ""}${r.example ? `<p class="use">${esc(r.example)}</p>` : ""}
+      ${s.title ? `<p class="hint">${esc(s.title)}${s.author ? ", " + esc(s.author) : ""}</p>` : ""}</div>` : ""}
+    <div class="rc-bar">${RC.revealed
+      ? `<button class="drop grow" id="rc-drop" type="button">Drop this phrase</button><button class="btn" id="rc-no" type="button">Didn’t recall</button><button class="btn primary" id="rc-yes" type="button">Got it</button>`
+      : `<span class="hint grow">Say or write the phrase first, then check.</span><button class="btn primary" id="rc-show" type="button">Show answer</button>`}</div>
+  </div>`;
+  if (RC.revealed){
+    $("#rc-yes").onclick = () => rcGrade(r, true); $("#rc-no").onclick = () => rcGrade(r, false);
+    $("#rc-drop").onclick = async () => { RC.queue.shift(); RC.revealed = false; await putRecord({ ...r, dropped:true }); rcRender(); };
+    $("#rc-yes").focus({ preventScroll:true });
+  } else { $("#rc-show").onclick = () => { RC.revealed = true; rcRender(); }; }
+}
+async function rcGrade(r, ok){
+  RC.queue.shift(); RC.revealed = false;
+  if (RC.retried.has(r.id)){ if (!ok) RC.queue.push(r.id); rcRender(); return; }  // a second try today is practice only
+  if (!ok){ RC.retried.add(r.id); RC.queue.push(r.id); }
+  rcRender();
+  await putRecord(graded(r, ok));
+}
+function rcSummary(){
+  const ks = kept(), due = recallQueue().length;
+  $("#rc-sum").textContent = ks.length ? `${due} to practise today · ${ks.length} kept` : "";
+  $("#rc-all").innerHTML = ks.length ? `<h2>Kept phrases</h2><ul class="rows">${ks.slice().sort((a,b) => b.createdAt - a.createdAt).map(x => `
+    <li class="row" style="cursor:default"><span class="n">box ${x.box || 1}</span><span class="t">${esc(x.phrase)}</span>
+      <span class="st">${x.seen ? "next " + fmtDate(x.due) : "new"} · <button class="drop" type="button" data-drop="${esc(x.id)}">Drop</button></span>
+      <span class="s">${esc(SRC[x.source && x.source.kind] || "Kept")}${x.source && x.source.title ? ": " + esc(x.source.title) : ""}</span></li>`).join("")}</ul>` : "";
+  $("#rc-all").querySelectorAll("[data-drop]").forEach(b => b.onclick = async () => {
+    const x = records.find(r => r.id === b.dataset.drop); if (x) await putRecord({ ...x, dropped:true });
+    if (state.view === "recall") rcRender();
+  });
+}
+document.addEventListener("keydown", e => {
+  if (state.view !== "recall" || e.target.closest("input,textarea,select") || e.metaKey || e.ctrlKey || e.altKey) return;
+  const show = $("#rc-show"), yes = $("#rc-yes"), no = $("#rc-no");
+  if (show && (e.key === " " || e.key === "Enter")){ e.preventDefault(); show.click(); }
+  else if (yes && e.key === "2"){ yes.click(); } else if (no && e.key === "1"){ no.click(); }
+});
 
 /* ---------- select to explain ---------- */
 let lookCtl = null, lookSel = null;
@@ -894,8 +1095,9 @@ $("#lookbtn").onclick = async () => {
   if (lookCtl) lookCtl.abort();
   lookCtl = new AbortController();
   $("#dock").hidden = false; $("#dock-q").textContent = "“" + q + "”"; $("#dock-a").textContent = "Thinking…";
+  $("#dock-bar").hidden = true;
   try {
-    await sample(`An advanced non-native English reader selected an expression in a text by ${p.author || "an author"}${p.year ? " (" + p.year + ")" : ""}.
+    const res = await sample(`An advanced non-native English reader selected an expression in a text by ${p.author || "an author"}${p.year ? " (" + p.year + ")" : ""}.
 Expression: "${q}"
 Sentence context: "${ctx.slice(0, 1500)}"
 
@@ -905,6 +1107,14 @@ Register: modern / formal / dated / archaic, and whether a speaker today would u
 Use it: one natural modern sentence on an intellectual topic (or the modern equivalent, if it is dated).
 Grammar: only if the expression's grammar is unusual, one sentence; otherwise leave this line out.`,
       { modelTier:"quick", signal: lookCtl.signal, onText: ({ text }) => { $("#dock-a").textContent = text; } });
+    const text = String(res && res.text || "");
+    const line = k => { const m = text.match(new RegExp("^\\s*" + k + "\\s*:\\s*(.+)$", "mi")); return m ? m[1].trim() : ""; };
+    const item = { phrase:q, meaning: line("Meaning"), example: line("Use it"), cue: ctx.slice(0, 600), dated: /^(dated|archaic)/i.test(line("Register")),
+      source:{ kind:"explain", title: p.custom || p.shelf ? p.title : (p.section || p.title || ""), author: p.author || "" } };
+    const kb = $("#dock-keep"); const on = isKept(q);
+    kb.setAttribute("aria-pressed", String(on)); kb.textContent = on ? "Kept" : "Keep";
+    kb.onclick = async () => { if (kb.getAttribute("aria-pressed") === "true") return; kb.setAttribute("aria-pressed","true"); kb.textContent = "Kept"; await keepPhrase(item); };
+    $("#dock-bar").hidden = false;
   } catch(e){ if (!e || e.code !== "cancelled") $("#dock-a").textContent = errText(e); }
 };
 $("#dock-x").onclick = () => { $("#dock").hidden = true; if (lookCtl) lookCtl.abort(); };
