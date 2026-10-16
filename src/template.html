@@ -426,6 +426,12 @@ async function loadOlder(){
   } finally { store.loadingOlder = false; }
 }
 async function loadAllSessions(){ for (let i = 0; i < 300 && store.hasMore; i++){ if (!(await loadOlder())) break; } }
+async function deleteRecord(id){
+  for (const k of Object.keys(src)) src[k].delete(id);
+  rebuild();
+  if (col){ try { await col.doc(id).delete(); } catch(e){} } else saveLocal();
+  renderLists();
+}
 async function markDone(id){
   if (!id || id === "free" || id === "revise") return;
   const s = stateRec(); const d = new Set(s.done || []); if (d.has(id)) return;
@@ -776,12 +782,24 @@ function openSession(id){
     <div class="histhead"><span class="label">${fmtDate(s.createdAt)}</span><h1>${esc(s.source.title)}</h1><p class="pby">${esc(s.source.author)}${s.source.work ? ", " + esc(s.source.work) : ""}</p></div>
     ${words(s.reply) ? `<div class="rsec" style="margin-top:18px"><h3 class="label">What you wrote</h3><div class="reply-orig">${esc(s.reply)}</div></div>` : ""}
     <div id="h-rev" style="margin-top:8px"></div>
-    ${findPassage(s.passageId) && s.passageId !== "free" ? `<p style="margin-top:24px"><button class="btn" id="h-open">Reread the passage</button></p>` : ""}`;
+    <div class="wbar" style="margin-top:24px">${findPassage(s.passageId) && s.passageId !== "free" ? `<button class="btn" id="h-open">Reread the passage</button>` : ""}
+      <span class="count" style="margin-right:0;margin-left:auto" id="h-drop-msg"></span>
+      <button class="btn quiet" id="h-drop" type="button">Drop this session</button>
+      <button class="btn quiet" id="h-drop-no" type="button" hidden>Cancel</button><button class="btn" id="h-drop-yes" type="button" hidden style="color:var(--del);border-color:var(--del)">Delete for good</button></div>`;
   const hp = findPassage(s.passageId);
   const ks = { kind: s.kind === "revise" ? "revise" : "passage", title: s.source.title, author: s.source.author, sessionId: s.id };
   renderReview($("#h-rev"), s.review || {}, s.reply, s.kind === "revise" ? { phraseLabel: "Worth keeping", keepSource: ks } : { customSource: !!(hp && hp.custom), keepSource: ks });
   $("#h-back").onclick = () => { d.hidden = true; $("#hist-list").hidden = false; };
   const o = $("#h-open"); if (o) o.onclick = () => openPassage(s.passageId);
+  const ask = on => { $("#h-drop").hidden = on; $("#h-drop-yes").hidden = !on; $("#h-drop-no").hidden = !on;
+    $("#h-drop-msg").textContent = on ? "This can’t be undone. Phrases you kept stay in Recall." : ""; };
+  $("#h-drop").onclick = () => ask(true);
+  $("#h-drop-no").onclick = () => ask(false);
+  $("#h-drop-yes").onclick = async () => {
+    $("#h-drop-yes").disabled = true;
+    await deleteRecord(s.id);
+    d.hidden = true; $("#hist-list").hidden = false; window.scrollTo({ top:0 });
+  };
   $("#hist-list").hidden = true; d.hidden = false; window.scrollTo({ top:0 });
 }
 $("#addform").addEventListener("submit", async ev => {
