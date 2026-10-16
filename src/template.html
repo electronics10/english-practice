@@ -267,10 +267,10 @@ label.btn{cursor:pointer}
   <section id="v-revise" hidden>
     <div class="listhead"><h1>Revise</h1></div>
     <div class="ask">
-      <form id="ask-form"><input type="text" id="ask-q" placeholder="How do I say… (Chinese is fine: 籃球沒有摩擦力)" autocomplete="off"><button class="btn quiet" type="button" id="ask-clear" hidden>Clear</button><button class="btn primary" type="submit" id="ask-go">Ask</button></form>
+      <form id="ask-form"><input type="text" id="ask-q" placeholder="How do I say…, or what does … mean? (Chinese is fine: 籃球沒有摩擦力)" autocomplete="off"><button class="btn quiet" type="button" id="ask-clear" hidden>Clear</button><button class="btn primary" type="submit" id="ask-go">Ask</button></form>
       <div class="ask-out" id="ask-out" hidden></div>
     </div>
-    <p class="rv-intro" style="margin-top:22px">Or paste anything you wrote: a message, an email, a post, or a whole chat. Only your own lines are corrected, and they are corrected for their setting, so a casual chat stays casual.</p>
+    <p class="rv-intro" style="margin-top:22px">Or paste anything you wrote: a message, an email, a post, or a whole chat. Only your own lines are corrected, and they are corrected for their setting, so a casual chat stays casual. You can also paste something good you read; Claude then picks out the language worth keeping.</p>
     <div class="rv-grid" style="margin-top:18px">
       <div>
         <textarea id="rv-body" placeholder="Paste your writing here. A whole conversation is fine."></textarea>
@@ -284,11 +284,9 @@ label.btn{cursor:pointer}
       </div>
       <div class="rv-ctx">
         <h2>What this is</h2>
-        <div class="rv-field"><label class="label" for="rv-setting">Setting</label><input type="text" id="rv-setting" placeholder="e.g. chat with an AI, email to my advisor"></div>
+        <div class="rv-field"><label class="label" for="rv-setting">Setting</label><input type="text" id="rv-setting" placeholder="e.g. email to my advisor; chat with Claude, my lines are the short ones"></div>
         <div class="rv-field"><label class="label" for="rv-register">Register</label>
-          <select id="rv-register"><option value="">Let Claude decide</option><option value="casual">Casual</option><option value="neutral">Neutral</option><option value="formal">Formal</option></select></div>
-        <div class="rv-field"><label class="label" for="rv-speaker">Your lines</label><input type="text" id="rv-speaker" placeholder="e.g. all of it, or “the messages that aren’t Claude’s”"></div>
-        <p class="rv-state" id="rv-state">Paste some text and Claude fills these in. Change anything that’s wrong.</p>
+          <select id="rv-register"><option value="">Let Claude decide</option><option value="casual">Casual</option><option value="neutral">Neutral</option><option value="formal">Formal</option></select></div>        <p class="rv-state" id="rv-state">Paste some text and Claude fills these in. Change anything that’s wrong.</p>
       </div>
     </div>
     <section class="review" id="rv-review" hidden></section>
@@ -857,15 +855,15 @@ $("#b-skip").onclick = async () => { await markSkipped(state.current); goNext();
 
 /* ---------- revise: any writing from daily life ---------- */
 const RV = { touched:{}, guessedFor:"", guessCtl:null, ctl:null, lastRun:null };
-const rvFields = { setting:"#rv-setting", register:"#rv-register", speaker:"#rv-speaker" };
-const rvCtx = () => ({ setting: $("#rv-setting").value.trim(), register: $("#rv-register").value, speaker: $("#rv-speaker").value.trim() });
+const rvFields = { setting:"#rv-setting", register:"#rv-register" };
+const rvCtx = () => ({ setting: $("#rv-setting").value.trim(), register: $("#rv-register").value });
 const REGISTERS = ["casual","neutral","formal"];
 function rvSave(){ ls.set("cp.revise", JSON.stringify({ body: $("#rv-body").value, ...rvCtx(), touched: RV.touched, guessedFor: RV.guessedFor })); }
 function rvRestore(){
   try {
     const d = JSON.parse(ls.get("cp.revise") || "null"); if (!d) return;
     $("#rv-body").value = d.body || ""; $("#rv-setting").value = d.setting || "";
-    $("#rv-register").value = REGISTERS.includes(d.register) ? d.register : ""; $("#rv-speaker").value = d.speaker || "";
+    $("#rv-register").value = REGISTERS.includes(d.register) ? d.register : "";
     RV.touched = d.touched || {}; RV.guessedFor = d.guessedFor || "";
   } catch(e){}
 }
@@ -873,7 +871,6 @@ function rvFill(ctx){
   if (!ctx) return;
   if (!RV.touched.setting && typeof ctx.setting === "string") $("#rv-setting").value = ctx.setting.trim().slice(0, 80);
   if (!RV.touched.register && REGISTERS.includes(ctx.register)) $("#rv-register").value = ctx.register;
-  if (!RV.touched.speaker && typeof ctx.speaker === "string") $("#rv-speaker").value = ctx.speaker.trim().slice(0, 120);
   rvSave();
 }
 function rvState(text, busy){ $("#rv-state").innerHTML = (busy ? '<span class="dot"></span>' : "") + `<span>${esc(text)}</span>`; }
@@ -896,22 +893,21 @@ async function rvGuess(){
   if (!sample || words(body) < 4) return;
   const key = body.slice(0, 3000);
   if (key === RV.guessedFor) return;
-  if (RV.touched.setting && RV.touched.register && RV.touched.speaker) return;
+  if (RV.touched.setting && RV.touched.register) return;
   if (RV.guessCtl) RV.guessCtl.abort();
   const ctl = RV.guessCtl = new AbortController();
   rvState("Claude is reading what this is…", true);
   try {
-    const r = await sample.json(`A non-native English writer (a researcher) pasted the text below to get feedback on their English. It may be one message, an email, a post, or a whole conversation copied from a chat app. A conversation may have no speaker labels: in a chat with an AI assistant copied from the screen, the long, formatted replies are the assistant's.
+    const r = await sample.json(`A non-native English learner (a researcher) pasted the text below into a language-learning tool. It may be their own writing (a message, an email, a post, or a whole conversation copied from a chat app), or something good they read and want to learn from.
 
 TEXT
 ${body.slice(0, 6000)}
 
 Guess:
-- setting: a short plain phrase naming what this is and who it is for, at most 6 words, e.g. "chat with an AI assistant", "message to a friend", "email to my advisor".
-- register: "casual", "neutral" or "formal", the register the writer is aiming for.
-- speaker: which lines are the writer's own. "All of it" if the whole text is theirs; otherwise a short description that picks out their lines, e.g. the speaker label as it appears ("Victor:") or "the messages that aren't the AI's".
+- setting: a short plain phrase naming what this is, at most 6 words, e.g. "chat with an AI assistant", "message to a friend", "email to my advisor", "news article I read".
+- register: "casual", "neutral" or "formal", the register of the text.
 
-Reply with only JSON: {"setting": string, "register": string, "speaker": string}`, { modelTier:"quick", signal: ctl.signal });
+Reply with only JSON: {"setting": string, "register": string}`, { modelTier:"quick", signal: ctl.signal });
     if (ctl !== RV.guessCtl) return;
     RV.guessedFor = key; rvFill(r);
     rvState("Filled in by Claude. Change anything that’s wrong.");
@@ -921,26 +917,26 @@ Reply with only JSON: {"setting": string, "register": string, "speaker": string}
   } finally { if (ctl === RV.guessCtl) RV.guessCtl = null; rvSync(); }
 }
 function buildRevisePrompt(body, ctx){
-  return `You are an English editor for an advanced non-native writer: a researcher whose first language is Chinese. They pasted real writing from their daily life (a chat, an email, a message, or a whole conversation) to learn from their mistakes afterwards. This is not an essay. The goal is the English a native speaker would naturally write in this setting, not more eloquent or more formal English.
+  return `You are an English editor for an advanced non-native learner: a researcher whose first language is Chinese. They pasted text from their daily life into a learning tool. It may be their own writing (a chat, an email, a message, or a whole conversation that also contains other people's lines), or something good they read and want to learn from, or a mix. For their own writing, the goal is the English a native speaker would naturally write in this setting, not more eloquent or more formal English.
 
-CONTEXT (given by the learner; a blank means you decide)
+CONTEXT (given by the learner; a blank means you decide; the setting may also say which lines are theirs)
 Setting: ${ctx.setting || "(blank)"}
 Register: ${ctx.register || "(blank)"}
-Learner's lines: ${ctx.speaker || "(blank)"}
 
 PASTED TEXT
 ${body.slice(0, 30000)}
 
 Reply with only one JSON object of this shape:
-{"context": {"setting": string, "register": "casual"|"neutral"|"formal", "speaker": string}, "mine": string, "corrected": string, "notes": [{"kind": "meaning"|"wording"|"grammar"|"structure", "original": string, "better": string, "why": string}], "keep": [{"phrase": string, "meaning": string, "example": string}], "worth_pointing_out": string}
+{"context": {"setting": string, "register": "casual"|"neutral"|"formal"}, "mine": string, "corrected": string, "notes": [{"kind": "meaning"|"wording"|"grammar"|"structure", "original": string, "better": string, "why": string}], "keep": [{"phrase": string, "meaning": string, "example": string}], "worth_pointing_out": string}
 
 Rules:
-- context: the setting, register and learner's lines you actually used. Keep the learner's values where given; fill blanks with your best guess. setting at most 6 words.
-- mine: only the learner's own words, copied exactly, character for character, with every typo and error left in. Separate different messages with one blank line. Leave out other people's text, speaker labels, timestamps and app interface text (button labels, "Copy", model names). If the whole text is the learner's, copy all of it.
-- corrected: "mine" rewritten as a native speaker would write it in this setting and register. Same messages in the same order, separated by the same blank lines, with the learner's ideas and voice. Fix every error and every unnatural word choice. Keep casual writing casual: contractions, short sentences and fragments that are normal in chat are fine. Do not add ideas, greetings or polish. Do not change code, URLs, names, or text the learner is quoting. Leave a message unchanged if it is already natural.
-- notes: at most 6, the most useful only, in this priority: meaning (wording that makes the reader misread the point), wording (unnatural words or collocations, judged for this setting), grammar (especially in long, complex sentences), structure (how ideas are ordered and connected). "original" quotes the learner's words exactly; "better" gives the replacement; "why" explains in one or two plain sentences, naming the rule or the standard term when there is one.
-- keep: 2 to 5 expressions from the corrected text that the learner seemed not to know and could reuse: collocations, idioms, set phrases, everyday words for concrete things. meaning: one plain sentence. example: one natural sentence in a similar everyday setting. Empty list if the corrections were only small grammar fixes.
-- worth_pointing_out: a pattern across the errors, or something about tone in this setting (too blunt, too stiff, too formal). At most 80 words. Empty string if nothing is worth saying; never add praise or filler.
+- context: the setting and register you actually used. Keep the learner's values where given; fill blanks with your best guess. setting at most 6 words.
+- Decide which lines are the learner's own. Signs: a speaker label or a hint in the setting; in a chat with an AI copied from the screen, the long, formatted replies are the AI's and the shorter messages are the learner's; non-native errors point to the learner. Polished published prose (an article, a book, a post by someone else) is not the learner's.
+- mine: only the learner's own words, copied exactly, character for character, with every typo and error left in. Separate different messages with one blank line. Leave out other people's text, speaker labels, timestamps and app interface text (button labels, "Copy", model names). Empty string if none of the text is the learner's.
+- corrected: "mine" rewritten as a native speaker would write it in this setting and register (empty string when "mine" is empty). Same messages in the same order, separated by the same blank lines, with the learner's ideas and voice. Fix every error and every unnatural word choice. Keep casual writing casual: contractions, short sentences and fragments that are normal in chat are fine. Do not add ideas, greetings or polish. Do not change code, URLs, names, or text the learner is quoting. Leave a message unchanged if it is already natural.
+- notes: at most 6, the most useful only, in this priority: meaning (wording that makes the reader misread the point), wording (unnatural words or collocations, judged for this setting), grammar (especially in long, complex sentences), structure (how ideas are ordered and connected). "original" quotes the learner's words exactly; "better" gives the replacement; "why" explains in one or two plain sentences, naming the rule or the standard term when there is one. Empty list when "mine" is empty.
+- keep: expressions worth learning from ALL of the pasted text: ones the corrections introduced, and good ones in other people's text (precise verbs, collocations, idioms, set phrases, useful sentence frames, everyday words for concrete things). 3 to 6 when there is learner text; 5 to 8 when there is none. Skip what an advanced learner surely knows. meaning: one plain sentence. example: one natural modern sentence in a similar setting.
+- worth_pointing_out: for the learner's writing, a pattern across the errors or something about tone in this setting (too blunt, too stiff, too formal); for text by others, what makes it work (how it builds a point, a notable technique). At most 80 words. Empty string if nothing is worth saying; never add praise or filler.
 - Write all explanations in plain, correct English for a non-native reader.`;
 }
 async function rvRun(){
@@ -957,11 +953,12 @@ async function rvRun(){
     const rev = await sample.json(buildRevisePrompt(body, ctx), { signal: RV.ctl.signal });
     if (!rev || typeof rev !== "object") throw { code:"invalid_json" };
     const mine = String(rev.mine || "").trim();
-    if (!mine){ $("#rv-err").textContent = "Claude found none of your own lines in that text. Check “Your lines” and press Review again."; $("#rv-err").hidden = false; return; }
+    const keepList = Array.isArray(rev.keep) ? rev.keep.filter(x => x && x.phrase) : [];
+    if (!mine && !keepList.length && !String(rev.worth_pointing_out || "").trim()){ $("#rv-err").textContent = "The review came back empty. Press Review again."; $("#rv-err").hidden = false; return; }
     rvFill(rev.context);
     const used = { ...ctx, ...Object.fromEntries(Object.entries(rev.context || {}).filter(([k,v]) => !ctx[k] && typeof v === "string")) };
-    const review = { corrected: rev.corrected || mine, notes: rev.notes || [],
-      passage_language: (Array.isArray(rev.keep) ? rev.keep : []).filter(x => x && x.phrase).map(x => ({ ...x, status:"modern" })),
+    const review = { corrected: mine ? (rev.corrected || mine) : "", notes: mine ? (rev.notes || []) : [],
+      passage_language: keepList.map(x => ({ ...x, status:"modern" })),
       worth_pointing_out: rev.worth_pointing_out || "" };
     const setting = used.setting || "Your writing";
     const rec = { id: "r" + Date.now().toString(36), type:"session", kind:"revise", passageId:"revise",
@@ -978,9 +975,10 @@ async function rvRun(){
 }
 function rvShow(rec){
   const box = $("#rv-review"), c = rec.context || {};
-  const used = [c.setting, c.register, c.speaker && "your lines: " + c.speaker].filter(Boolean).join(" · ");
-  box.innerHTML = `<div class="rhead"><h2>Review</h2><span class="label">${fmtDate(rec.createdAt)} · ${words(rec.reply)} words</span></div>
-    ${used ? `<p class="rv-used">Reviewed as ${esc(used)}. If that’s wrong, change it above and review again.</p>` : ""}<div id="rv-rbody"></div>`;
+  const used = [c.setting, c.register].filter(Boolean).join(" · ");
+  const n = words(rec.reply);
+  box.innerHTML = `<div class="rhead"><h2>Review</h2><span class="label">${fmtDate(rec.createdAt)} · ${n ? n + " words of yours" : "none of it is yours: language only"}</span></div>
+    ${used ? `<p class="rv-used">Reviewed as ${esc(used)}. If that’s wrong, or the wrong lines were treated as yours, change Setting above (e.g. “my lines are the short ones”) and review again.</p>` : ""}<div id="rv-rbody"></div>`;
   renderReview($("#rv-rbody"), rec.review, rec.reply, { phraseLabel:"Worth keeping", keepSource: { kind:"revise", title: rec.source.title, sessionId: rec.id } });
   box.hidden = false;
   box.scrollIntoView({ behavior:"smooth", block:"start" });
@@ -1017,25 +1015,35 @@ $("#ask-form").addEventListener("submit", async ev => {
   const ctl = askCtl = new AbortController();
   out.hidden = false; askSyncClear(); out.innerHTML = `<div class="busy" style="margin:0"><span class="dot"></span><span>Finding how people say it…</span></div>`;
   try {
-    const r = await sample.json(`An advanced non-native English speaker (a researcher whose first language is Chinese) wants to know how to say something in natural, everyday English. The question may be in Chinese, English, or a mix. It is usually about daily life, not academic writing.
+    const r = await sample.json(`An advanced non-native English speaker (a researcher whose first language is Chinese) asks a short question about English. The question may be in Chinese, English, or a mix. Usually it is "how do I say this?", about daily life rather than academic writing; it can also be "what does this word mean?" or "what's the difference between these?".
 
 QUESTION
 ${q.slice(0, 1500)}
 
-Give the 2 or 3 ways a native speaker would actually say it, the most common first. Prefer what people really say over literal translations.
-
 Reply with only JSON:
-{"options": [{"phrase": "the key expression, as short as possible", "sentence": "one full natural sentence using it in this situation", "register": "casual"|"neutral"|"formal", "note": "one plain sentence on when to use it or how it differs from the others"}], "avoid": "a literal translation a learner might try that sounds wrong, and why, in one sentence; empty string if none"}
+{"answer": "a direct answer in one or two plain sentences, only if the question asks about meaning or a difference; otherwise empty string",
+ "options": [{"phrase": "the key expression, as short as possible", "sentence": "one full natural sentence using it in this situation", "register": "casual"|"neutral"|"formal", "note": "one plain sentence on when to use it or how it differs from the others"}],
+ "terms": [{"phrase": "an English word or phrase in the question that the learner seems not to know, in its dictionary form", "meaning": "one plain sentence", "example": "one natural modern sentence using it"}],
+ "avoid": "a literal translation a learner might try that sounds wrong, and why, in one sentence; empty string if none"}
 
-Write in plain, correct English for a non-native reader.`, { modelTier:"quick", signal: ctl.signal });
+Rules:
+- options: when the question asks how to say something, the 2 or 3 ways a native speaker would actually say it, the most common first; prefer what people really say over literal translations. Otherwise an empty list.
+- terms: the hard English expressions the question contains or asks about, worth keeping (at most 3). Empty list if the question has no such expression; never include words in options.
+- Write in plain, correct English for a non-native reader.`, { modelTier:"quick", signal: ctl.signal });
     if (ctl !== askCtl) return;
     const opts = (Array.isArray(r && r.options) ? r.options : []).filter(o => o && o.phrase).slice(0, 3);
-    if (!opts.length) throw { code:"invalid_json" };
-    const avoid = String(r.avoid || "").trim();
-    out.innerHTML = `<ul class="phrases">${opts.map((o,i) => `<li class="phrase"><div class="phrase-top"><span><b>${esc(o.phrase)}</b>${REGISTERS.includes(o.register) ? `<span class="chip">${esc(o.register)}</span>` : ""}</span>${keepBtn(o.phrase, i)}</div>
-      ${o.sentence ? `<p class="use">${esc(o.sentence)}</p>` : ""}${o.note ? `<p>${esc(o.note)}</p>` : ""}</li>`).join("")}</ul>
-      ${avoid ? `<p class="avoid"><b>Avoid:</b> ${esc(avoid)}</p>` : ""}`;
-    wireKeeps(out, i => ({ phrase: opts[i].phrase, meaning: opts[i].note || "", example: opts[i].sentence || "", cue: q, source:{ kind:"ask", title: q.slice(0, 120) } }));
+    const terms = (Array.isArray(r && r.terms) ? r.terms : []).filter(o => o && o.phrase).slice(0, 3);
+    const answer = String(r && r.answer || "").trim(), avoid = String(r && r.avoid || "").trim();
+    if (!opts.length && !terms.length && !answer) throw { code:"invalid_json" };
+    const items = opts.map(o => ({ phrase:o.phrase, meaning:o.note || "", example:o.sentence || "", register:o.register }))
+      .concat(terms.map(t => ({ phrase:t.phrase, meaning:t.meaning || "", example:t.example || "", term:true })));
+    const card = (x, i) => `<li class="phrase"><div class="phrase-top"><span><b>${esc(x.phrase)}</b>${REGISTERS.includes(x.register) ? `<span class="chip">${esc(x.register)}</span>` : ""}</span>${keepBtn(x.phrase, i)}</div>
+      ${x.term ? `${x.meaning ? `<p>${esc(x.meaning)}</p>` : ""}${x.example ? `<p class="use">${esc(x.example)}</p>` : ""}` : `${x.example ? `<p class="use">${esc(x.example)}</p>` : ""}${x.meaning ? `<p>${esc(x.meaning)}</p>` : ""}`}</li>`;
+    out.innerHTML = `${answer ? `<p class="aside" style="border:0;padding:0;margin:0">${esc(answer)}</p>` : ""}
+      ${opts.length ? `<ul class="phrases">${items.filter(x => !x.term).map((x) => card(x, items.indexOf(x))).join("")}</ul>` : ""}
+      ${avoid ? `<p class="avoid"><b>Avoid:</b> ${esc(avoid)}</p>` : ""}
+      ${terms.length ? `<h3 class="label" style="margin:6px 0 0">From your question</h3><ul class="phrases">${items.filter(x => x.term).map(x => card(x, items.indexOf(x))).join("")}</ul>` : ""}`;
+    wireKeeps(out, i => ({ phrase: items[i].phrase, meaning: items[i].meaning, example: items[i].example, cue: items[i].term ? "" : q, source:{ kind:"ask", title: q.slice(0, 120) } }));
   } catch(e){
     if (e && e.code === "cancelled") return;
     out.innerHTML = `<p class="err" style="margin:0">${esc(errText(e))}</p>`;
