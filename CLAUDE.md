@@ -8,10 +8,13 @@
   - `db` stores records under `data/users/<viewer id>`.
   - `downloads` saves the exports.
 - To keep the user's history, update the existing artifact (URL in README.md); don't publish a new one.
-- Record types in the db:
-  - `session` (a review)
-  - `text` (pasted by the user)
+- Record types in the db (one collection, `data/users/<viewer id>`):
+  - `session` (a review; `kind: "revise"` for Revise sessions, which store only the learner's lines, never the raw paste)
+  - `text` (pasted by the user in Library)
   - `shelf` (a passage drawn from the shelf)
-  - `state` (skipped ids)
+  - `phrase` (a kept phrase: Leitner `box` 1–5, `due`, `seen`; `dropped: true` hides it)
+  - `state` (skipped ids, and `done`: finished passage ids, so old sessions need not be loaded)
+- Loading: `phrase`, `text`, `shelf` and `state` load in full; sessions load newest first, 100 at a time. Exports fetch all sessions first. The db holds at most 25,000 documents, and queries scan the collection, so keep it in the low thousands.
+- Never use `confirm()` or `prompt()`: they do nothing in an artifact. Confirm inside the page.
 - Review order the user asked for: meaning → wording/collocations → grammar in complex sentences → argument structure; at most 6 notes; no praise or filler.
 - The user is a non-native English speaker: keep UI copy and explanations in plain, correct English.

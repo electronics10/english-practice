@@ -44,6 +44,28 @@ Each session:
    - expressions from the passage worth learning, each marked "modern" or "dated";
    - anything else worth pointing out, or nothing.
 
+## Everyday English: Revise
+
+Eloquence and daily English fail in different ways, so they get different tabs.
+**Revise** is for the English of my own life:
+
+- **How do I say…?** A short question, in Chinese or English, gets 2–3 natural
+  ways to say it, each with its register. Hard English words in the question
+  itself are offered too.
+- **Paste** a message, an email, or a whole chat. Claude guesses the setting and
+  register (I can change them), corrects only my own lines, and corrects them
+  for that setting, so a casual chat stays casual. Expressions worth keeping
+  come from the whole paste, including other people's lines. Text that is not
+  mine at all gets a language study instead.
+
+## Recall
+
+Any phrase can be **kept** with one tap: in a review, an Explain answer, or a
+"How do I say" answer. Nothing is added automatically. **Recall** shows one kept
+phrase at a time as a cue (its example with a blank, or my original question),
+then the answer. It uses 5 Leitner boxes (1, 2, 4, 8, 16 days) and at most 10 new
+phrases a day, so the deck never piles up.
+
 I can select any phrase in a passage and press **Explain**. Every session is
 saved to History, and History can export Markdown or a JSON backup.
 
