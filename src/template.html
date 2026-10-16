@@ -267,7 +267,7 @@ label.btn{cursor:pointer}
   <section id="v-revise" hidden>
     <div class="listhead"><h1>Revise</h1></div>
     <div class="ask">
-      <form id="ask-form"><input type="text" id="ask-q" placeholder="How do I say… (Chinese is fine: 籃球沒有摩擦力)" autocomplete="off"><button class="btn primary" type="submit" id="ask-go">Ask</button></form>
+      <form id="ask-form"><input type="text" id="ask-q" placeholder="How do I say… (Chinese is fine: 籃球沒有摩擦力)" autocomplete="off"><button class="btn quiet" type="button" id="ask-clear" hidden>Clear</button><button class="btn primary" type="submit" id="ask-go">Ask</button></form>
       <div class="ask-out" id="ask-out" hidden></div>
     </div>
     <p class="rv-intro" style="margin-top:22px">Or paste anything you wrote: a message, an email, a post, or a whole chat. Only your own lines are corrected, and they are corrected for their setting, so a casual chat stays casual.</p>
@@ -317,6 +317,7 @@ label.btn{cursor:pointer}
     <div id="hist-list">
       <div class="listhead"><h1>History</h1><span class="hint" id="hist-sum"></span></div>
       <ul class="rows" id="hist"></ul>
+      <p style="margin:14px 0 0" id="hist-more" hidden><button class="btn" id="b-older" type="button">Show older sessions</button></p>
       <div class="backup">
         <div><h2>Keep a copy</h2><p>Your history lives inside this page on claude.ai. Save a copy to keep it safe, or load one into a fresh copy of the page.</p></div>
         <div class="wbar">
@@ -358,19 +359,28 @@ const ls = {
 };
 
 /* ---------- store: claude db per viewer, local fallback ---------- */
+/* Sessions are loaded newest first, PAGE at a time; everything else (phrases, texts, shelf draws, state) is small and loads in full. */
+const PAGE = 100;
 let records = [];
 let col = null;
-function loadLocal(){ try { records = JSON.parse(ls.get("cp.records") || "[]"); } catch(e){ records = []; } }
-function saveLocal(){ ls.set("cp.records", JSON.stringify(records)); }
+const src = { local:new Map(), older:new Map(), recent:new Map(), core:new Map() };
+const store = { hasMore:false, loadingOlder:false, gotCore:false, gotRecent:false };
+function rebuild(){
+  const m = new Map();
+  for (const k of ["older","recent","core","local"]) for (const [id, r] of src[k]) m.set(id, r);
+  records = [...m.values()];
+}
+function loadLocal(){ try { JSON.parse(ls.get("cp.records") || "[]").forEach(r => r && r.id && src.local.set(r.id, r)); } catch(e){} rebuild(); }
+function saveLocal(){ ls.set("cp.records", JSON.stringify([...src.local.values()])); }
 async function putRecord(rec){
-  const i = records.findIndex(r => r.id === rec.id);
-  if (i >= 0) records[i] = rec; else records.push(rec);
+  src.local.set(rec.id, rec); rebuild();
   if (col){
     const { id, ...body } = rec;
     try { await col.doc(id).set(body); } catch(e){ saveLocal(); }
   } else saveLocal();
   renderLists();
 }
+const fromSnap = snap => new Map(snap.docs.map(d => [d.id, { id: d.id, ...d.data() }]));
 async function initStore(){
   loadLocal();
   if (!window.claude || !window.claude.use) return;
@@ -379,18 +389,49 @@ async function initStore(){
     const uid = user ? await user.id() : null;
     if (!db || !uid) return;
     col = db.collection("data/users/" + uid);
-    col.onSnapshot(snap => {
-      const remote = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-      // carry over anything saved locally before the store answered
-      const ids = new Set(remote.map(r => r.id));
-      const pending = records.filter(r => !ids.has(r.id));
-      records = remote.concat(pending);
-      pending.forEach(r => { const { id, ...b } = r; col.doc(id).set(b).catch(()=>{}); });
-      if (pending.length) ls.del("cp.records");
-      renderLists();
-      if (!state.started) startToday();
+    // anything saved in this browser before the store answered goes up once
+    const pending = [...src.local.values()];
+    for (const r of pending){ const { id, ...b } = r; try { await col.doc(id).set(b); } catch(e){} }
+    if (pending.length) ls.del("cp.records");
+    col.where("type", "in", ["phrase","text","shelf","state"]).onSnapshot(snap => {
+      src.core = fromSnap(snap); store.gotCore = true; afterSnap();
+    }, () => {});
+    col.where("type", "==", "session").orderBy("createdAt", "desc").limit(PAGE).onSnapshot(snap => {
+      src.recent = fromSnap(snap); store.gotRecent = true;
+      if (!src.older.size) store.hasMore = snap.size >= PAGE;
+      afterSnap();
     }, () => {});
   } catch(e){}
+}
+let migrated = false;
+function afterSnap(){
+  rebuild(); renderLists();
+  if (!state.started) startToday();
+  // keep a list of finished passages in the state record, so old sessions need not be loaded to know them
+  if (!migrated && store.gotCore && store.gotRecent){
+    migrated = true;
+    const s = stateRec(), have = new Set(s.done || []);
+    const missing = [...new Set(sessions().map(x => x.passageId))].filter(id => id && id !== "free" && id !== "revise" && !have.has(id));
+    if (missing.length) putRecord({ ...s, done: [...have, ...missing].slice(-5000) });
+  }
+}
+async function loadOlder(){
+  if (!col || store.loadingOlder || !store.hasMore) return 0;
+  store.loadingOlder = true;
+  try {
+    const ss = sessions(); const oldest = ss.length ? ss[ss.length - 1].createdAt : Date.now();
+    const snap = await col.where("type", "==", "session").where("createdAt", "<", oldest).orderBy("createdAt", "desc").limit(PAGE).get();
+    for (const [id, r] of fromSnap(snap)) src.older.set(id, r);
+    store.hasMore = snap.size >= PAGE;
+    rebuild(); renderLists();
+    return snap.size;
+  } finally { store.loadingOlder = false; }
+}
+async function loadAllSessions(){ for (let i = 0; i < 300 && store.hasMore; i++){ if (!(await loadOlder())) break; } }
+async function markDone(id){
+  if (!id || id === "free" || id === "revise") return;
+  const s = stateRec(); const d = new Set(s.done || []); if (d.has(id)) return;
+  d.add(id); await putRecord({ ...s, done: [...d].slice(-5000) });
 }
 const sessions = () => records.filter(r => r.type === "session").sort((a,b) => b.createdAt - a.createdAt);
 const customTexts = () => records.filter(r => r.type === "text").sort((a,b) => a.createdAt - b.createdAt);
@@ -400,7 +441,7 @@ const allPassages = () => PASSAGES
   .concat(customTexts().map(t => ({ id:t.id, title:t.title, author:t.author||"", work:"", section:"", year:"", text:t.body, custom:true })))
   .concat(shelfDrawn().map(t => ({ id:t.id, title:t.title, author:t.author||"", work:t.work||"", section:t.section||"", year:"", text:t.body, shelf:true, shelfId:t.shelfId })));
 const findPassage = id => id === "free" ? FREE : allPassages().find(p => p.id === id);
-const doneSet = () => new Set(sessions().map(s => s.passageId));
+const doneSet = () => new Set(sessions().map(s => s.passageId).concat(stateRec().done || []));
 
 /* ---------- sample ---------- */
 let sample = null;
@@ -655,6 +696,7 @@ async function runReview(){
       source:{ title: p.free ? "Free page" : (p.custom || p.shelf ? p.title : p.section), author:p.author||"", work:p.work||"", year:p.year||"" },
       reply, review: rev, createdAt: Date.now() };
     await putRecord(rec);
+    await markDone(p.id);
     ls.del("cp.draft." + p.id);
     showReview(rec);
   } catch(e){
@@ -707,13 +749,14 @@ function renderLists(){
   const list = [FREE].concat(allPassages()).filter(p => filter === "All" || (filter === "Yours" ? p.custom : filter === "Shelf" ? p.shelf : (!p.free && !p.custom && !p.shelf && p.author.endsWith(filter))));
   const left = unreadPool().length;
   $("#shelfnote").textContent = left ? `${left} hand-picked passage${left > 1 ? "s" : ""} left. After that, new passages come from the shelf automatically.` : "The hand-picked passages are done. New passages now come from the shelf.";
+  const doneIds = doneSet();
   $("#lib").innerHTML = list.map(p => {
-    const s = done.get(p.id);
+    const s = done.get(p.id) || (doneIds.has(p.id) ? { createdAt: null } : null);
     const n = p.free ? "—" : p.custom ? "own" : p.shelf ? "shelf" : String(p.no).padStart(2,"0");
     const title = p.free ? "Free page" : p.custom || p.shelf ? p.title : p.section;
     const sub = p.free ? "No passage. Write about anything." : `${p.author || "Unknown"}${p.work ? ", " + p.work : ""}${p.year ? " (" + p.year + ")" : ""} · ${words(p.text)} words`;
     return `<li><button class="row" data-id="${esc(p.id)}"><span class="n">${n}</span><span class="t">${esc(title)}</span>
-      <span class="st ${s ? "done" : ""}">${s && !p.free ? "written " + fmtDate(s.createdAt) : ""}</span><span class="s">${esc(sub)}</span></button></li>`;
+      <span class="st ${s ? "done" : ""}">${s && !p.free ? (s.createdAt ? "written " + fmtDate(s.createdAt) : "written") : ""}</span><span class="s">${esc(sub)}</span></button></li>`;
   }).join("");
   $("#lib").querySelectorAll(".row").forEach(b => b.onclick = () => openPassage(b.dataset.id));
   // history
@@ -724,6 +767,8 @@ function renderLists(){
       <span class="s">${esc(s.source && s.source.author || "")}${s.source && s.source.work ? ", " + esc(s.source.work) : ""}</span></button></li>`).join("")
     : `<li class="empty">Nothing yet. Your reviewed writing will collect here, newest first.</li>`;
   $("#hist").querySelectorAll(".row").forEach(b => b.onclick = () => openSession(b.dataset.id));
+  $("#hist-more").hidden = !store.hasMore;
+  if (store.hasMore) $("#hist-sum").textContent = `latest ${ss.length} sessions`;
   rcSummary();
 }
 function openSession(id){
@@ -777,8 +822,19 @@ async function saveFile(filename, data){
   try { const r = await downloads.save({ filename, data }); m.textContent = r && r.status === "saved" ? `Saved ${filename}.` : ""; }
   catch(e){ m.textContent = e && e.code === "unavailable" ? "Saving files isn't available in this view." : ""; }
 }
-$("#x-md").onclick = () => saveFile(`english-practice-${stamp()}.md`, toMarkdown());
-$("#x-json").onclick = () => saveFile(`english-practice-backup-${stamp()}.json`, JSON.stringify({ app:"english-practice", version:1, saved:Date.now(), records }, null, 1));
+// exports always cover the whole history, so older sessions are fetched first
+async function withAll(fn){
+  const m = $("#x-msg");
+  if (store.hasMore){ m.textContent = "Loading your whole history…"; try { await loadAllSessions(); } catch(e){ m.textContent = "Couldn’t load your older sessions. Try again."; return; } }
+  m.textContent = ""; fn();
+}
+$("#x-md").onclick = () => withAll(() => saveFile(`english-practice-${stamp()}.md`, toMarkdown()));
+$("#x-json").onclick = () => withAll(() => saveFile(`english-practice-backup-${stamp()}.json`, JSON.stringify({ app:"english-practice", version:1, saved:Date.now(), records }, null, 1)));
+$("#b-older").onclick = async () => {
+  const b = $("#b-older"); b.disabled = true; b.textContent = "Loading…";
+  try { await loadOlder(); } catch(e){}
+  b.disabled = false; b.textContent = "Show older sessions";
+};
 $("#x-file").addEventListener("change", async ev => {
   const f = ev.target.files && ev.target.files[0]; const m = $("#x-msg"); if (!f) return;
   try {
@@ -910,7 +966,7 @@ async function rvRun(){
     const setting = used.setting || "Your writing";
     const rec = { id: "r" + Date.now().toString(36), type:"session", kind:"revise", passageId:"revise",
       source:{ title: setting.charAt(0).toUpperCase() + setting.slice(1), author: "Revise" + (used.register ? " · " + used.register : ""), work:"", year:"" },
-      context: used, pasted: body.slice(0, 30000), reply: mine, review, createdAt: Date.now() };
+      context: used, reply: mine, review, createdAt: Date.now() };
     await putRecord(rec);
     RV.lastRun = { body, ctx: rvCtx() };
     rvShow(rec);
@@ -946,6 +1002,12 @@ $("#rv-clear").onclick = () => {
 
 /* ---------- how do I say: short everyday questions ---------- */
 let askCtl = null;
+const askSyncClear = () => { $("#ask-clear").hidden = !$("#ask-q").value.trim() && $("#ask-out").hidden; };
+$("#ask-q").addEventListener("input", askSyncClear);
+$("#ask-clear").onclick = () => {
+  if (askCtl){ askCtl.abort(); askCtl = null; }
+  $("#ask-q").value = ""; $("#ask-out").hidden = true; $("#ask-out").innerHTML = ""; askSyncClear(); $("#ask-q").focus();
+};
 $("#ask-form").addEventListener("submit", async ev => {
   ev.preventDefault();
   const q = $("#ask-q").value.trim(), out = $("#ask-out");
@@ -953,7 +1015,7 @@ $("#ask-form").addEventListener("submit", async ev => {
   if (!sample){ out.hidden = false; out.innerHTML = `<p class="hint">Answers need Claude, which runs when this page is open in Claude.</p>`; return; }
   if (askCtl) askCtl.abort();
   const ctl = askCtl = new AbortController();
-  out.hidden = false; out.innerHTML = `<div class="busy" style="margin:0"><span class="dot"></span><span>Finding how people say it…</span></div>`;
+  out.hidden = false; askSyncClear(); out.innerHTML = `<div class="busy" style="margin:0"><span class="dot"></span><span>Finding how people say it…</span></div>`;
   try {
     const r = await sample.json(`An advanced non-native English speaker (a researcher whose first language is Chinese) wants to know how to say something in natural, everyday English. The question may be in Chinese, English, or a mix. It is usually about daily life, not academic writing.
 
